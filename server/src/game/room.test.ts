@@ -25,9 +25,10 @@ describe('lobby', () => {
     expect(random.ok && AVATAR_EMOJIS.includes(random.player.avatar)).toBe(true);
   });
 
-  it('respeita o limite de jogadores', () => {
-    const { room } = makeRoom(Array.from({ length: LIMITS.maxPlayers }, (_, i) => `P${i}`));
-    expect(room.join('Extra')).toEqual({ ok: false, error: 'ROOM_FULL' });
+  it('não tem limite máximo de jogadores', () => {
+    const { room } = makeRoom(Array.from({ length: 20 }, (_, i) => `P${i}`));
+    expect(room.players.size).toBe(20);
+    expect(room.join('Extra').ok).toBe(true);
   });
 
   it('dá cores diferentes a cada jogador', () => {
@@ -46,11 +47,27 @@ describe('lobby', () => {
     expect(room.phase).toBe('writing');
   });
 
-  it('exige 3 jogadores conectados para iniciar', () => {
+  it(`exige ${LIMITS.minPlayers} jogadores conectados para iniciar`, () => {
     const { room, ids, host } = makeRoom();
     room.setQuestions(host, ['Qual foi?']);
+    room.disconnect(ids[1]);
     room.disconnect(ids[2]);
     expect(room.start(host)).toEqual({ ok: false, error: 'NOT_ENOUGH_PLAYERS' });
+    room.connect(ids[2]);
+    expect(room.start(host)).toEqual({ ok: true });
+  });
+
+  it('dá para jogar uma rodada com 2 jogadores', () => {
+    const { room, ids, host } = startedRoom(['Ana', 'Bruno']);
+    room.submitAnswer(ids[0], 'Já vi um disco voador', false);
+    room.submitAnswer(ids[1], 'Tenho três gatos', true);
+    expect(room.phase).toBe('voting');
+    const author = room.currentAuthorId()!;
+    const voter = ids.find((id) => id !== author)!;
+    room.castVote(voter, true);
+    expect(room.phase).toBe('reveal');
+    room.advance(host);
+    expect(room.phase).toBe('voting');
   });
 
   it('valida configurações', () => {

@@ -1,8 +1,7 @@
 import type { Settings, TitleKey } from './types';
 
 export const LIMITS = {
-  minPlayers: 3,
-  maxPlayers: 12,
+  minPlayers: 2,
   nicknameMax: 20,
   questionsMax: 10,
   questionMin: 3,

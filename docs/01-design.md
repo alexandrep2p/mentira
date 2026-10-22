@@ -18,7 +18,9 @@ Funciona em dois contextos, com a mesma experiência:
 | **Host** | Cria a sala, define as perguntas e as configurações, inicia o jogo e controla o ritmo (avançar, pular, remover jogador). **Também joga**: escreve respostas e vota como qualquer um. |
 | **Jogador** | Entra com código + apelido, escreve respostas, vota. |
 
-Limites: **mínimo 3 jogadores** (incluindo o host), **máximo 12**.
+Limites: **mínimo 2 jogadores** (incluindo o host), **sem máximo** (o host controla quem entra).
+
+**Modo treino (oculto):** abrir o site com `?bots=N` (ex.: `/?bots=3`) e criar uma sala coloca N bots (até 8) que respondem e votam sozinhos. Não aparece em nenhum lugar da interface.
 
 ## 3. Fluxo do jogo
 
@@ -39,7 +41,7 @@ LOBBY ──► [ RODADA 1 ] ──► [ RODADA 2 ] ──► … ──► PLAC
 - O host monta a lista de perguntas:
   - escrevendo as próprias, e/ou
   - sorteando do **banco de sugestões** embutido (perguntas prontas, seguras para ambiente de trabalho).
-- O host ajusta as configurações (seção 6) e clica em **Iniciar** (habilitado com ≥ 3 jogadores e ≥ 1 pergunta).
+- O host ajusta as configurações (seção 6) e clica em **Iniciar** (habilitado com ≥ 2 jogadores e ≥ 1 pergunta).
 
 ### 3.2 Escrita
 - Todos veem a pergunta da rodada.

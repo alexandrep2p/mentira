@@ -113,8 +113,8 @@ export class GameStore {
 
   // ---------- ações ----------
 
-  async createRoom(nickname: string, avatar: string) {
-    const res = await this.run('room:create', { nickname, avatar });
+  async createRoom(nickname: string, avatar: string, bots = 0) {
+    const res = await this.run('room:create', bots > 0 ? { nickname, avatar, bots } : { nickname, avatar });
     if (res) {
       this.storage.set(res);
       await this.router.navigate(['/sala', res.code]);

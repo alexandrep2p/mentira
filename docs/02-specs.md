@@ -109,7 +109,7 @@ A classe `Room` concentra **todas as regras** e não conhece Socket.IO. Cada mé
 
 | De | Para | Gatilho |
 |---|---|---|
-| lobby | writing | host `start` (≥ 3 jogadores conectados, ≥ 1 pergunta) |
+| lobby | writing | host `start` (≥ 2 jogadores conectados, ≥ 1 pergunta) |
 | writing | voting | todos os ativos conectados enviaram, **ou** o timer acabou, **ou** o host avançou. Se ninguém respondeu → roundScore |
 | voting | reveal | todos os votantes elegíveis conectados votaram, **ou** o timer acabou, **ou** o host avançou |
 | reveal | voting | host `advance` (ou avanço automático) e ainda há cards |
@@ -154,7 +154,7 @@ para cada voto v:
 
 ### 6.1 Estratégia: sincronização do estado completo
 
-A cada mudança, o servidor monta um `RoomView` **personalizado por jogador** e emite `room:state` para cada socket da sala. As salas são pequenas (≤ 12 jogadores), então mandar o estado inteiro é barato e evita bugs de dessincronização. O cliente só renderiza o que recebe.
+A cada mudança, o servidor monta um `RoomView` **personalizado por jogador** e emite `room:state` para cada socket da sala. As salas costumam ser pequenas (não há limite máximo, mas um happy hour tem dezenas de pessoas, no máximo), então mandar o estado inteiro é barato e evita bugs de dessincronização. O cliente só renderiza o que recebe.
 
 ### 6.2 Cliente → Servidor
 
@@ -229,7 +229,7 @@ interface RoomView {
 
 ### 6.5 Códigos de erro
 
-`ROOM_NOT_FOUND`, `ROOM_FULL`, `NICKNAME_TAKEN`, `INVALID_NICKNAME`, `INVALID_AVATAR`, `INVALID_TOKEN`, `NOT_HOST`, `WRONG_PHASE`, `NOT_ENOUGH_PLAYERS`, `NO_QUESTIONS`, `INVALID_QUESTIONS`, `INVALID_ANSWER`, `NOT_ELIGIBLE`, `INVALID_SETTINGS`. O cliente traduz cada código para uma mensagem em pt-BR (snackbar).
+`ROOM_NOT_FOUND`, `NICKNAME_TAKEN`, `INVALID_NICKNAME`, `INVALID_AVATAR`, `INVALID_TOKEN`, `NOT_HOST`, `WRONG_PHASE`, `NOT_ENOUGH_PLAYERS`, `NO_QUESTIONS`, `INVALID_QUESTIONS`, `INVALID_ANSWER`, `NOT_ELIGIBLE`, `INVALID_SETTINGS`. O cliente traduz cada código para uma mensagem em pt-BR (snackbar).
 
 ## 7. Validações e limites (`constants.ts`)
 
@@ -238,7 +238,8 @@ interface RoomView {
 | Código da sala | 4 letras do alfabeto `ABCDEFGHJKLMNPQRSTUVWXYZ` (sem I/O), único entre as salas ativas, case-insensitive na entrada |
 | Apelido | 1–20 caracteres depois do trim, único na sala (sem diferenciar maiúsculas) |
 | Avatar | um emoji de `AVATAR_EMOJIS` (24 opções com o tema do jogo); qualquer outro valor é recusado com `INVALID_AVATAR`; sem avatar, o servidor sorteia um. Avatares repetidos são permitidos (a cor de fundo diferencia) |
-| Jogadores | mín. 3 para iniciar, máx. 12 por sala |
+| Jogadores | mín. 2 conectados para iniciar, sem máximo; as 12 cores da paleta se repetem a partir do 13º |
+| Bots (`room:create.bots`) | 0–8; jogadores controlados pelo servidor (`BotManager`), sempre conectados, nunca viram host e não contam para "sala vazia" |
 | Perguntas | 1–10, cada uma com 3–150 caracteres depois do trim |
 | Resposta | 1–200 caracteres depois do trim |
 | Tempo de escrita | `null` ou 30–300 s |

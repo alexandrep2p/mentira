@@ -14,6 +14,8 @@ export interface Player {
   avatar: string;
   color: number;
   connected: boolean;
+  /** Jogador controlado pelo servidor (modo treino `?bots=N`). Não vai para o RoomView. */
+  isBot: boolean;
   joinedAt: number;
   /** Primeira rodada (0-based) em que o jogador participa. */
   activeFromRound: number;

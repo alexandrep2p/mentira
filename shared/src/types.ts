@@ -105,7 +105,6 @@ export interface Session {
 
 export type ErrorCode =
   | 'ROOM_NOT_FOUND'
-  | 'ROOM_FULL'
   | 'NICKNAME_TAKEN'
   | 'INVALID_NICKNAME'
   | 'INVALID_AVATAR'
@@ -125,7 +124,8 @@ export type Ack<T = {}> = ({ ok: true } & T) | { ok: false; error: ErrorCode };
 export type AckFn<T = {}> = (res: Ack<T>) => void;
 
 export interface ClientToServerEvents {
-  'room:create': (p: { nickname: string; avatar?: string }, ack: AckFn<Session>) => void;
+  /** `bots`: modo treino oculto (`?bots=N` na URL), cria a sala já com N bots. */
+  'room:create': (p: { nickname: string; avatar?: string; bots?: number }, ack: AckFn<Session>) => void;
   'room:join': (p: { code: string; nickname: string; avatar?: string }, ack: AckFn<Session>) => void;
   'room:resume': (p: { code: string; token: string }, ack: AckFn<Session>) => void;
   'room:leave': (p: {}, ack: AckFn) => void;

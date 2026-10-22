@@ -2,6 +2,7 @@ import { SWEEP_INTERVAL_MS, type ClientToServerEvents, type ServerToClientEvents
 import type { Server, Socket } from 'socket.io';
 import type { Room } from './game/room';
 import { buildView } from './game/view';
+import { BotManager, MAX_BOTS } from './bots/bot-manager';
 import { RoomManager } from './rooms';
 import { PhaseTimers } from './timers';
 import type { Result } from './game/types';
@@ -22,6 +23,7 @@ export function registerHandlers(io: GameServer) {
   const timers = new PhaseTimers((room) => {
     if (room.tick(Date.now())) broadcast(room);
   });
+  const bots = new BotManager((room) => broadcast(room));
 
   function broadcast(room: Room) {
     const now = Date.now();
@@ -30,6 +32,7 @@ export function registerHandlers(io: GameServer) {
       if (socketId) io.to(socketId).emit('room:state', buildView(room, player.id, now));
     }
     timers.sync(room);
+    bots.react(room);
   }
 
   function bind(socket: GameSocket, room: Room, playerId: string) {
@@ -84,6 +87,8 @@ export function registerHandlers(io: GameServer) {
         return ack(res);
       }
       bind(socket, room, res.player.id);
+      const botCount = Number(payload?.bots);
+      if (Number.isInteger(botCount) && botCount > 0) bots.addBots(room, Math.min(botCount, MAX_BOTS));
       ack({ ok: true, ...session(room, res.player.id) });
       broadcast(room);
     });
@@ -160,6 +165,7 @@ export function registerHandlers(io: GameServer) {
     for (const room of rooms.all()) if (room.sweep(now)) broadcast(room);
     for (const room of rooms.expired(now)) {
       timers.clear(room.code);
+      bots.forget(room.code);
       rooms.delete(room.code);
     }
   }, SWEEP_INTERVAL_MS);

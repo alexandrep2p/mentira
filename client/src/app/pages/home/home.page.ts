@@ -24,6 +24,8 @@ export class HomePage {
   protected readonly code = signal('');
   protected readonly avatar = signal(rememberedAvatar());
   protected readonly nicknameError = signal(false);
+  /** Modo treino oculto: `/?bots=3` cria a sala já com 3 bots. */
+  private readonly bots = Math.max(0, Math.floor(Number(new URLSearchParams(location.search).get('bots')) || 0));
 
   private validNickname() {
     const name = this.nickname().trim();
@@ -43,6 +45,6 @@ export class HomePage {
 
   protected create() {
     const name = this.validNickname();
-    if (name) this.store.createRoom(name, this.avatar());
+    if (name) this.store.createRoom(name, this.avatar(), this.bots);
   }
 }

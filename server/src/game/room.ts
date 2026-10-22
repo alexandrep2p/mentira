@@ -81,7 +81,6 @@ export class Room {
     if (avatar !== undefined && (typeof avatar !== 'string' || !AVATAR_EMOJIS.includes(avatar))) {
       return fail('INVALID_AVATAR');
     }
-    if (this.players.size >= LIMITS.maxPlayers) return fail('ROOM_FULL');
     const lower = name.toLocaleLowerCase('pt-BR');
     if ([...this.players.values()].some((p) => p.nickname.toLocaleLowerCase('pt-BR') === lower)) {
       return fail('NICKNAME_TAKEN');
@@ -96,6 +95,7 @@ export class Room {
       avatar: (avatar as string | undefined) ?? AVATAR_EMOJIS[Math.floor(this.deps.random() * AVATAR_EMOJIS.length)],
       color: color === -1 ? this.players.size % PLAYER_COLORS.length : color,
       connected: true,
+      isBot: false,
       joinedAt: this.joinCounter++,
       activeFromRound: this.phase === 'lobby' ? 0 : this.roundIndex + 1,
       score: 0,
@@ -107,11 +107,26 @@ export class Room {
     return ok({ player });
   }
 
+  /** Jogador controlado pelo servidor (modo treino). Sempre conectado, nunca host. */
+  addBot(nickname: string, avatar: string): Result<{ player: Player }> {
+    if (!this.hostId) return fail('NOT_IN_ROOM');
+    const res = this.join(nickname, avatar);
+    if (res.ok) {
+      res.player.isBot = true;
+      this.updateEmpty();
+    }
+    return res;
+  }
+
+  bots() {
+    return [...this.players.values()].filter((p) => p.isBot);
+  }
+
   connect(playerId: string) {
     const player = this.players.get(playerId);
     if (!player) return;
     player.connected = true;
-    this.emptySince = null;
+    this.updateEmpty();
     if (playerId === this.hostId) this.hostDisconnectedAt = null;
   }
 
@@ -121,7 +136,7 @@ export class Room {
     player.connected = false;
     const now = this.deps.now();
     if (playerId === this.hostId) this.hostDisconnectedAt = now;
-    if (![...this.players.values()].some((p) => p.connected)) this.emptySince = now;
+    this.updateEmpty();
     this.checkProgress();
   }
 
@@ -407,14 +422,20 @@ export class Room {
       this.hostDisconnectedAt = null;
       this.transferHost();
     }
-    if (this.players.size === 0) this.emptySince = this.deps.now();
+    this.updateEmpty();
     this.checkProgress();
   }
 
-  /** Passa o host para o jogador conectado mais antigo. */
+  /** A sala conta como vazia quando não há nenhum humano conectado (bots não contam). */
+  private updateEmpty() {
+    const humans = [...this.players.values()].some((p) => p.connected && !p.isBot);
+    this.emptySince = humans ? null : (this.emptySince ?? this.deps.now());
+  }
+
+  /** Passa o host para o humano conectado mais antigo. */
   private transferHost(): boolean {
     const candidates = [...this.players.values()]
-      .filter((p) => p.id !== this.hostId)
+      .filter((p) => p.id !== this.hostId && !p.isBot)
       .sort((a, b) => Number(b.connected) - Number(a.connected) || a.joinedAt - b.joinedAt);
     const next = candidates[0];
     if (!next || (!next.connected && this.hostId)) return false;

@@ -9,6 +9,7 @@ const player = (id: string, joinedAt = 0): Player => ({
   avatar: '🥸',
   color: 0,
   connected: true,
+  isBot: false,
   joinedAt,
   activeFromRound: 0,
   score: 0,

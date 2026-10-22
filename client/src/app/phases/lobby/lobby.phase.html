@@ -24,7 +24,7 @@
     <section class="card players">
       <div class="head">
         <h2>Jogadores</h2>
-        <span class="muted">{{ v.players.length }} de {{ limits.maxPlayers }} · mínimo {{ limits.minPlayers }}</span>
+        <span class="muted">{{ v.players.length }} {{ v.players.length === 1 ? 'jogador' : 'jogadores' }} · mínimo {{ limits.minPlayers }}</span>
       </div>
       <ul>
         @for (p of v.players; track p.id) {
