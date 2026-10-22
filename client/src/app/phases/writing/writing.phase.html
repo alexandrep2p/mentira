@@ -1,0 +1,46 @@
+@let w = writing();
+<div class="writing card-on-wide">
+  <div class="intro">
+    <span class="eyebrow">Responda</span>
+    <h1 class="display question">{{ w.question }}</h1>
+  </div>
+
+  @if (!isActive()) {
+    <p class="notice">Você entrou no meio da rodada. Assista a esta e jogue a partir da próxima!</p>
+  } @else {
+    <form class="form" (ngSubmit)="send()">
+      <mat-form-field appearance="outline" class="answer">
+        <mat-label>Sua resposta</mat-label>
+        <textarea matInput name="answer" rows="4" [maxlength]="limits.answerMax"
+                  [readonly]="submitted()" [ngModel]="text()" (ngModelChange)="text.set($event)"
+                  placeholder="Conte uma história verdadeira ou invente uma bem convincente"></textarea>
+        <mat-hint align="end">{{ text().length }} / {{ limits.answerMax }}</mat-hint>
+      </mat-form-field>
+
+      <div class="choose">
+        <app-truth-toggle class="toggle" [(value)]="isTruth" [disabled]="submitted()" />
+        <div class="send">
+          @if (submitted()) {
+            <div class="sent" role="status"><mat-icon>check_circle</mat-icon>Resposta enviada</div>
+            <button matButton="outlined" class="big" type="button" (click)="editing.set(true)">
+              <mat-icon>edit</mat-icon>Editar
+            </button>
+          } @else {
+            <button matButton="filled" class="big" type="submit" [disabled]="!canSend()">
+              <mat-icon>send</mat-icon>{{ w.myAnswer ? 'Atualizar resposta' : 'Enviar resposta' }}
+            </button>
+          }
+        </div>
+      </div>
+    </form>
+  }
+
+  <div class="progress">
+    <div class="stack">
+      @for (p of submittedPlayers().slice(0, 5); track p.id) {
+        <app-avatar [player]="p" [size]="28" />
+      }
+    </div>
+    <span><strong>{{ w.submittedIds.length }} de {{ activeCount() }}</strong> já responderam</span>
+  </div>
+</div>

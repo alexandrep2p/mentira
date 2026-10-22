@@ -1,0 +1,63 @@
+<header class="bar">
+  <app-logo class="bar-logo" />
+</header>
+
+<main class="home">
+  <section class="hero">
+    <app-logo [mark]="true" class="hero-logo" />
+    <p class="tagline">
+      Conte verdades absurdas, invente mentiras críveis e descubra quem engana melhor.
+      <span class="wide-only">Feito para happy hours, na mesma sala ou numa chamada de vídeo.</span>
+    </p>
+    <ol class="steps wide-only">
+      <li><span class="display">1</span><strong>Responda</strong><span>com uma verdade ou uma mentira</span></li>
+      <li><span class="display">2</span><strong>Vote</strong><span>nas respostas dos colegas</span></li>
+      <li><span class="display">3</span><strong>Descubra</strong><span>quem enganou todo mundo</span></li>
+    </ol>
+  </section>
+
+  <section class="panel">
+    @if (store.rememberedSession(); as last) {
+      <button matButton="tonal" class="big back" type="button" (click)="store.rejoin()">
+        <mat-icon>history</mat-icon>
+        Voltar para a sala {{ last.code }}
+      </button>
+    }
+    <h2 class="wide-only">Bora jogar</h2>
+    <form class="form" (ngSubmit)="join()">
+      <app-avatar-picker [(value)]="avatar">
+        <mat-form-field appearance="outline">
+          <mat-label>Seu apelido</mat-label>
+          <input matInput name="nickname" autocomplete="nickname" [maxlength]="limits.nicknameMax"
+                 [ngModel]="nickname()" (ngModelChange)="nickname.set($event); nicknameError.set(false)" />
+          @if (nicknameError()) {
+            <mat-hint class="error">Escolha um apelido para jogar</mat-hint>
+          }
+        </mat-form-field>
+      </app-avatar-picker>
+
+      <div class="code-row">
+        <mat-form-field appearance="outline" class="code-field">
+          <mat-label>Código da sala</mat-label>
+          <input matInput name="code" autocomplete="off" autocapitalize="characters" spellcheck="false"
+                 [ngModel]="code()" (ngModelChange)="onCode($event)" placeholder="KXPQ" />
+        </mat-form-field>
+        <button matButton="filled" class="big" type="submit" [disabled]="code().length !== codeLength || store.busy()">
+          Entrar
+        </button>
+      </div>
+    </form>
+
+    <div class="or"><span>ou</span></div>
+
+    <button matButton="tonal" class="big create" type="button" (click)="create()" [disabled]="store.busy()">
+      <mat-icon>add</mat-icon>
+      Criar sala nova
+    </button>
+
+    <div class="facts">
+      <span><mat-icon>group</mat-icon>3 a 12 jogadores</span>
+      <span><mat-icon>devices</mat-icon>Celular ou computador</span>
+    </div>
+  </section>
+</main>

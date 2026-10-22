@@ -1,0 +1,118 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  transition: background 300ms ease;
+}
+
+.timer {
+  padding: 0 16px;
+}
+
+.offline {
+  margin: 8px 16px 0;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--mentira);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.stage {
+  flex: 1;
+  display: flex;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar {
+  display: none;
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.join {
+  gap: 28px;
+  --logo-size: 44px;
+  --mark-size: 72px;
+}
+
+.join-logo {
+  align-items: center;
+}
+
+.join-card {
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+  background: var(--surface);
+  border-radius: 28px;
+  padding: 28px 24px 16px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .code {
+    font-size: 48px;
+    letter-spacing: 10px;
+    padding-left: 10px;
+    color: var(--primary);
+    margin-bottom: 12px;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+  }
+}
+
+@media (min-width: 960px) {
+  .timer {
+    padding: 0;
+    --track-h: 6px;
+
+    ::ng-deep .track {
+      border-radius: 0;
+    }
+
+    ::ng-deep .label {
+      display: none;
+    }
+  }
+
+  .stage {
+    padding: 32px;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  .with-sidebar .sidebar {
+    display: flex;
+    flex: 0 0 300px;
+  }
+}

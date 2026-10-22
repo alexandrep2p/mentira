@@ -1,0 +1,145 @@
+@use '@angular/material' as mat;
+
+:root {
+  color-scheme: light dark;
+
+  // Tokens do protótipo (claro / escuro)
+  --bg: light-dark(#f4f0fb, #120b26);
+  --surface: light-dark(#ffffff, #1e1538);
+  --surface-2: light-dark(#f4f0fb, #281d48);
+  --ink: light-dark(#1c1530, #f2eefb);
+  --ink-2: light-dark(#4a4360, #d6cff0);
+  --muted: light-dark(#5e5873, #b4abd0);
+  --line: light-dark(#e4ddf0, #33285a);
+  --line-strong: light-dark(#cfc7e0, #4a3d7a);
+  --primary: light-dark(#5b2bd9, #c9b8ff);
+  --on-primary: light-dark(#ffffff, #21105c);
+  --primary-container: light-dark(#e9e1ff, #3a2380);
+  --on-primary-container: light-dark(#2a0e7a, #ece5ff);
+  --verdade: #0b6e69;
+  --verdade-container: light-dark(#d5f2ee, #0f3b38);
+  --on-verdade-container: light-dark(#064e4a, #bff0e9);
+  --mentira: #c93d16;
+  --mentira-ink: light-dark(#c93d16, #ff8a65);
+  --night: #1f1440;
+  --night-ink: #d6ccf5;
+  --gold: #ffc94d;
+
+  --font-display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --shadow-card: 0 1px 2px rgb(28 21 48 / 6%), 0 10px 28px rgb(91 43 217 / 10%);
+}
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$violet-palette,
+      tertiary: mat.$orange-palette,
+      theme-type: color-scheme,
+    ),
+    typography: (plain-family: 'Inter', brand-family: 'Bricolage Grotesque'),
+    density: 0,
+  ));
+  @include mat.theme-overrides((
+    primary: var(--primary),
+    on-primary: var(--on-primary),
+    primary-container: var(--primary-container),
+    on-primary-container: var(--on-primary-container),
+    secondary-container: var(--primary-container),
+    on-secondary-container: var(--on-primary-container),
+    surface: var(--surface),
+    on-surface: var(--ink),
+    on-surface-variant: var(--muted),
+    outline: var(--line-strong),
+    outline-variant: var(--line),
+  ));
+}
+
+// Telas "noturnas": visão do autor e resultado final
+.night {
+  color-scheme: dark;
+  --bg: var(--night);
+  --surface: rgb(255 255 255 / 8%);
+  --surface-2: rgb(255 255 255 / 10%);
+  --ink: #ffffff;
+  --ink-2: var(--night-ink);
+  --muted: var(--night-ink);
+  --line: rgb(255 255 255 / 14%);
+  --line-strong: rgb(255 255 255 / 24%);
+  --primary: #c9b8ff;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, p {
+  margin: 0;
+}
+
+.material-symbols-rounded, mat-icon {
+  font-family: 'Material Symbols Rounded';
+  font-variation-settings: 'FILL' 0, 'wght' 500;
+}
+
+// Botões grandes e redondos, como no protótipo
+.mat-mdc-button-base.big {
+  height: 56px;
+  border-radius: 28px;
+  font-size: 17px;
+  font-weight: 700;
+  padding-inline: 28px;
+}
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: 28px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.mat-mdc-snack-bar-container.error-snack {
+  --mat-snack-bar-container-color: var(--mentira);
+  --mat-snack-bar-supporting-text-color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

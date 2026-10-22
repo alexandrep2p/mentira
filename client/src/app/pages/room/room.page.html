@@ -1,0 +1,52 @@
+@if (view(); as v) {
+  <app-top-bar />
+  @if (timed()) {
+    <app-countdown class="timer" />
+  }
+  @if (!store.connected()) {
+    <div class="offline" role="status">Reconectando…</div>
+  }
+
+  <div class="stage" [class.with-sidebar]="withSidebar()">
+    <div class="content">
+      @switch (phase()) {
+        @case ('lobby') { <app-lobby-phase /> }
+        @case ('writing') { <app-writing-phase /> }
+        @case ('voting') { <app-voting-phase /> }
+        @case ('reveal') { <app-reveal-phase /> }
+        @case ('roundScore') { <app-round-score-phase /> }
+        @case ('final') { <app-final-phase /> }
+      }
+    </div>
+    @if (withSidebar()) {
+      <app-player-sidebar class="sidebar" />
+    }
+  </div>
+} @else if (waitingResume()) {
+  <div class="center">
+    <mat-spinner diameter="48" />
+    <p class="muted">Voltando para a sala…</p>
+  </div>
+} @else {
+  <main class="center join">
+    <app-logo [mark]="true" class="join-logo" />
+    <div class="join-card">
+      <p class="muted">Você foi convidado para a sala</p>
+      <p class="code display">{{ normalizedCode() }}</p>
+      <form (ngSubmit)="join()">
+        <app-avatar-picker [(value)]="avatar">
+          <mat-form-field appearance="outline">
+            <mat-label>Seu apelido</mat-label>
+            <input matInput name="nickname" autocomplete="nickname" [maxlength]="limits.nicknameMax"
+                   [ngModel]="nickname()" (ngModelChange)="nickname.set($event)" />
+          </mat-form-field>
+        </app-avatar-picker>
+        <button matButton="filled" class="big" type="submit" [disabled]="!nickname().trim() || store.busy()">Entrar na sala</button>
+      </form>
+      @if (store.rememberedSession(normalizedCode())) {
+        <button matButton="tonal" type="button" (click)="store.rejoin()">Continuar de onde parei</button>
+      }
+      <a matButton routerLink="/">Voltar ao início</a>
+    </div>
+  </main>
+}

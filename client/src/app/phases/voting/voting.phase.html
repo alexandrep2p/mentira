@@ -1,0 +1,76 @@
+@let v = voting();
+@if (isAuthor()) {
+  <div class="author">
+    <span class="poker" aria-hidden="true">🥸</span>
+    <div class="author-body">
+      <div class="author-head">
+        <h1 class="display">Esse é o seu!</h1>
+        <p>Faça cara de paisagem enquanto os outros decidem.</p>
+      </div>
+      <article class="mine">
+        <p class="asked">{{ v.question }}</p>
+        <p class="display quote">“{{ v.text }}”</p>
+        <span class="marked" [class.truth]="v.myAnswerIsTruth">
+          <mat-icon>{{ v.myAnswerIsTruth ? 'check' : 'close' }}</mat-icon>
+          Você marcou: {{ v.myAnswerIsTruth ? 'Verdade' : 'Mentira' }}
+        </span>
+      </article>
+    </div>
+    <div class="who-voted">
+      <span>{{ v.votedIds.length }} de {{ v.eligibleIds.length }} já votaram</span>
+      <div class="dots">
+        @for (x of voters(); track x.player?.id) {
+          <span class="voter" [class.pending]="!x.voted">
+            <app-avatar [player]="x.player" [size]="48" />
+            @if (x.voted) {
+              <span class="check"><mat-icon>check</mat-icon></span>
+            }
+          </span>
+        }
+      </div>
+    </div>
+  </div>
+} @else {
+  <div class="voting">
+    <div class="meta">
+      <span class="eyebrow">Card {{ v.cardNumber }} de {{ v.cardTotal }}</span>
+    </div>
+
+    <article class="claim" aria-live="polite">
+      <p class="asked">{{ v.question }}</p>
+      <div class="by">
+        <app-avatar [player]="author()" [size]="48" />
+        <div>
+          <span class="name">{{ author()?.nickname }}</span>
+          <span class="muted said">disse que…</span>
+        </div>
+      </div>
+      <p class="display quote">“{{ v.text }}”</p>
+      <div class="tally muted">
+        <span class="pips" aria-hidden="true">
+          @for (x of voters(); track x.player?.id) {
+            <span class="pip" [class.on]="x.voted"></span>
+          }
+        </span>
+        {{ v.votedIds.length }} de {{ v.eligibleIds.length }} votaram
+      </div>
+    </article>
+
+    @if (canVote()) {
+      <span class="ask">Você acredita?</span>
+      <div class="buttons">
+        <button type="button" class="vote verdade display" [attr.aria-pressed]="v.myVote === true" (click)="vote(true)">
+          <mat-icon>check</mat-icon>Verdade<kbd>V</kbd>
+        </button>
+        <button type="button" class="vote mentira display" [attr.aria-pressed]="v.myVote === false" (click)="vote(false)">
+          <mat-icon>close</mat-icon>Mentira<kbd>M</kbd>
+        </button>
+      </div>
+      <span class="hint muted">
+        @if (v.myVote !== null) { Voto registrado. } Dá para trocar o voto até a revelação<span class="keys"> · atalhos V e M</span>
+      </span>
+    } @else {
+      <p class="spectator muted">Você entra na próxima rodada. Por enquanto, só assiste!</p>
+    }
+  </div>
+}

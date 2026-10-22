@@ -1,0 +1,76 @@
+@let r = result();
+@let m = mine();
+<div class="reveal">
+  <span class="eyebrow card-no">Card {{ reveal().cardNumber }} de {{ reveal().cardTotal }}</span>
+
+  <div class="flip">
+    <article class="face" [class.truth]="r.isTruth">
+      <p class="asked">{{ reveal().question }}</p>
+      <div class="by">
+        <app-avatar [player]="author()" [size]="40" />
+        <span class="name">{{ author()?.nickname }}</span>
+        <div class="stamp display" role="status">{{ r.isTruth ? 'VERDADE!' : 'MENTIRA!' }}</div>
+      </div>
+      <p class="display quote">“{{ r.text }}”</p>
+    </article>
+  </div>
+
+  <div class="mine" [class]="m.tone">
+    <mat-icon>{{ m.icon }}</mat-icon>
+    <span>{{ m.text }}</span>
+    @if (m.delta > 0) {
+      <span class="delta display">+{{ m.delta }}</span>
+    }
+  </div>
+
+  <div class="groups">
+    <section class="group">
+      <div class="head">
+        <h2 class="ok">{{ r.isTruth ? 'Acreditaram' : 'Desconfiaram' }}</h2>
+        @if (correct().length) {
+          <span class="muted">+1 cada</span>
+        }
+      </div>
+      <div class="chips">
+        @for (p of correct(); track p.id) {
+          <span class="chip"><app-avatar [player]="p" [size]="28" />{{ p.nickname }}</span>
+        } @empty {
+          <span class="muted none">Ninguém</span>
+        }
+      </div>
+    </section>
+    <section class="group">
+      <div class="head">
+        <h2 class="bad">{{ r.isTruth ? 'Duvidaram' : 'Caíram na conversa' }}</h2>
+        @if (fooled().length) {
+          <span class="muted">{{ author()?.nickname }} +{{ fooled().length }}</span>
+        }
+      </div>
+      <div class="chips">
+        @for (p of fooled(); track p.id) {
+          <span class="chip"><app-avatar [player]="p" [size]="28" />{{ p.nickname }}</span>
+        } @empty {
+          <span class="muted none">Ninguém</span>
+        }
+      </div>
+    </section>
+  </div>
+
+  <div class="next">
+    @if (store.isHost()) {
+      <button matButton="outlined" class="skip" (click)="store.skipCard()">Pular card</button>
+      <button matButton="filled" class="big" (click)="store.advance()" [disabled]="store.busy()">
+        {{ isLastCard() ? 'Ver placar da rodada' : 'Próximo card' }}
+        <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+      </button>
+    } @else {
+      <div class="waiting muted">
+        <mat-icon>schedule</mat-icon>
+        Aguardando {{ store.host()?.nickname }} passar para o próximo card
+      </div>
+    }
+    @if (view().settings.autoAdvanceReveal) {
+      <app-countdown class="auto" [showLabel]="false" />
+    }
+  </div>
+</div>

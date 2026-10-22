@@ -1,0 +1,148 @@
+@let v = view();
+<div class="lobby">
+  <section class="share">
+    <span class="share-hint">Abra no celular e entre com o código</span>
+    <span class="share-label">Código da sala</span>
+    <span class="share-code display">{{ v.code }}</span>
+    @if (qr(); as src) {
+      <img class="qr" [class.open]="showQr()" [src]="src" alt="QR code com o link da sala {{ v.code }}" width="210" height="210" />
+    }
+    <span class="share-link">{{ displayLink() }}</span>
+    <div class="share-actions">
+      <button matIconButton class="qr-toggle" (click)="showQr.set(!showQr())"
+              [attr.aria-label]="showQr() ? 'Esconder QR code' : 'Mostrar QR code'" [attr.aria-pressed]="showQr()">
+        <mat-icon>qr_code_2</mat-icon>
+      </button>
+      <button matButton="filled" class="copy" (click)="copyLink()">
+        <mat-icon>content_copy</mat-icon>
+        <span class="copy-text">Copiar link</span>
+      </button>
+    </div>
+  </section>
+
+  <div class="side">
+    <section class="card players">
+      <div class="head">
+        <h2>Jogadores</h2>
+        <span class="muted">{{ v.players.length }} de {{ limits.maxPlayers }} · mínimo {{ limits.minPlayers }}</span>
+      </div>
+      <ul>
+        @for (p of v.players; track p.id) {
+          <li [class.offline]="!p.connected">
+            <app-avatar [player]="p" [size]="32" />
+            <span class="name">{{ p.nickname }}@if (p.id === v.me.id) { (você)}</span>
+            @if (p.isHost) {
+              <mat-icon class="crown" aria-label="Host">crown</mat-icon>
+            }
+            @if (store.isHost() && p.id !== v.me.id) {
+              <button matIconButton class="kick" (click)="store.kick(p.id)" [attr.aria-label]="'Remover ' + p.nickname">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+
+    @if (store.isHost()) {
+      <section class="card questions">
+        <div class="head">
+          <h2>Perguntas</h2>
+          <span class="muted">{{ questions().length }} de {{ limits.questionsMax }}</span>
+        </div>
+        @if (questions().length === 0) {
+          <p class="empty muted">Escreva suas perguntas ou sorteie do banco de sugestões.</p>
+        }
+        <ol>
+          @for (q of questions(); track q; let i = $index) {
+            <li>
+              <span class="n">{{ i + 1 }}</span>
+              <span class="text">{{ q }}</span>
+              <button matIconButton (click)="removeQuestion(i)" aria-label="Remover pergunta"><mat-icon>close</mat-icon></button>
+            </li>
+          }
+        </ol>
+
+        @if (adding()) {
+          <form class="add-form" (ngSubmit)="addQuestion(draft())">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Nova pergunta</mat-label>
+              <input matInput name="draft" [maxlength]="limits.questionMax" autocomplete="off"
+                     [ngModel]="draft()" (ngModelChange)="draft.set($event)" placeholder="Qual foi…?" />
+            </mat-form-field>
+            <button matButton="filled" type="submit" [disabled]="draft().trim().length < limits.questionMin">Adicionar</button>
+            <button matButton type="button" (click)="adding.set(false)">Cancelar</button>
+          </form>
+        } @else if (canAddQuestion()) {
+          <div class="q-actions">
+            <button matButton="outlined" (click)="adding.set(true)"><mat-icon>add</mat-icon>Escrever</button>
+            <button matButton="outlined" (click)="randomQuestion()" [disabled]="!suggestions().length">
+              <mat-icon>casino</mat-icon>Sortear do banco
+            </button>
+            <button matIconButton [matMenuTriggerFor]="bank" [disabled]="!suggestions().length" aria-label="Escolher do banco de sugestões">
+              <mat-icon>list</mat-icon>
+            </button>
+          </div>
+          <mat-menu #bank="matMenu" class="bank-menu">
+            @for (s of suggestions(); track s) {
+              <button mat-menu-item (click)="addQuestion(s)">{{ s }}</button>
+            }
+          </mat-menu>
+        }
+      </section>
+
+      <section class="card settings">
+        <h2>Configurações</h2>
+        <div class="settings-grid">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Tempo para escrever</mat-label>
+            <mat-select [value]="v.settings.writingSeconds ?? 0" (valueChange)="setSetting('writingSeconds', $event || null)">
+              @for (o of writingOptions; track o) {
+                <mat-option [value]="o">{{ optionLabel(o) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Tempo de voto por card</mat-label>
+            <mat-select [value]="v.settings.votingSeconds ?? 0" (valueChange)="setSetting('votingSeconds', $event || null)">
+              @for (o of votingOptions; track o) {
+                <mat-option [value]="o">{{ optionLabel(o) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <mat-slide-toggle [checked]="v.settings.autoAdvanceReveal" (change)="setSetting('autoAdvanceReveal', $event.checked)">
+          Avançar sozinho após a revelação (8 s)
+        </mat-slide-toggle>
+      </section>
+    } @else {
+      <section class="card waiting">
+        <mat-icon class="waiting-icon">hourglass_top</mat-icon>
+        <div>
+          <h2>Aguardando {{ store.host()?.nickname ?? 'o host' }} iniciar</h2>
+          <p class="muted">
+            {{ v.questionCount }} {{ v.questionCount === 1 ? 'pergunta' : 'perguntas' }} · {{ settingsSummary() }}
+          </p>
+        </div>
+      </section>
+    }
+
+    @if (store.isHost()) {
+      <div class="start">
+        <span class="start-hint muted">
+          @if (missingPlayers() > 0) {
+            Faltam {{ missingPlayers() }} {{ missingPlayers() === 1 ? 'jogador' : 'jogadores' }} para começar
+          } @else if (!v.questionCount) {
+            Adicione pelo menos uma pergunta
+          } @else {
+            {{ estimate() }}
+          }
+        </span>
+        <button matButton="filled" class="big" (click)="store.start()" [disabled]="!canStart() || store.busy()">
+          <mat-icon>play_arrow</mat-icon>
+          Iniciar jogo
+        </button>
+      </div>
+    }
+  </div>
+</div>

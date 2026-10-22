@@ -1,0 +1,54 @@
+@let rs = info();
+<div class="round-score">
+  <main class="board">
+    <div class="intro">
+      <span class="eyebrow">Fim da rodada {{ view().roundIndex + 1 }}</span>
+      <h1 class="display">Placar parcial</h1>
+      <p class="muted">{{ rs.question }}</p>
+    </div>
+    <ol>
+      @for (row of rows(); track row.player.id) {
+        <li [class.me]="row.me" [style.animation-delay.ms]="row.pos * 60">
+          <span class="pos display">{{ row.pos }}</span>
+          <app-avatar [player]="row.player" [size]="40" />
+          <span class="name">{{ row.player.nickname }}@if (row.me) { (você)}</span>
+          <span class="bar" aria-hidden="true">
+            <span class="base" [style.width.%]="row.base"></span>
+            <span class="gain" [style.width.%]="row.gain"></span>
+          </span>
+          @if (row.delta > 0) {
+            <span class="delta">+{{ row.delta }}</span>
+          }
+          <span class="score display">{{ row.player.score }}</span>
+        </li>
+      }
+    </ol>
+    <div class="legend muted">
+      <span><i class="sw base"></i>Antes da rodada</span>
+      <span><i class="sw gain"></i>Ganhos nesta rodada</span>
+    </div>
+  </main>
+
+  <aside class="aside">
+    @if (topFooler(); as top) {
+      <section class="highlight">
+        <mat-icon class="star">star</mat-icon>
+        <span><strong>{{ top.player?.nickname }}</strong> enganou {{ top.fooled }} {{ top.fooled === 1 ? 'pessoa' : 'pessoas' }} nesta rodada</span>
+      </section>
+    }
+    @if (store.isHost()) {
+      <button matButton="filled" class="big" (click)="store.advance()" [disabled]="store.busy()">
+        {{ rs.isLastRound ? 'Ver resultado final' : 'Próxima rodada' }}
+        <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+      </button>
+      @if (rs.nextQuestion) {
+        <span class="next-q muted">Próxima: {{ rs.nextQuestion }}</span>
+      }
+    } @else {
+      <div class="waiting muted">
+        <mat-icon>schedule</mat-icon>
+        Aguardando {{ store.host()?.nickname }} {{ rs.isLastRound ? 'revelar o resultado' : 'começar a próxima rodada' }}
+      </div>
+    }
+  </aside>
+</div>

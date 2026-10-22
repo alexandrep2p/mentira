@@ -1,0 +1,57 @@
+<div class="final">
+  <main class="stage">
+    <h1 class="display headline">
+      @if (tie()) { Empate no topo! } @else { {{ winner()?.player?.nickname }} venceu! }
+    </h1>
+
+    <div class="podium">
+      @for (r of podium(); track r.playerId) {
+        <div class="spot" [class]="'p' + r.pos">
+          @if (r.pos === 1) {
+            <mat-icon class="crown">crown</mat-icon>
+          }
+          <app-avatar [player]="r.player" [size]="r.pos === 1 ? 64 : 52" />
+          <span class="name">{{ r.player?.nickname }}</span>
+          <div class="block">
+            <span class="display pts">{{ r.score }}</span>
+            <span class="place">{{ r.pos }}º lugar</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (rest().length) {
+      <div class="rest">
+        @for (r of rest(); track r.playerId) {
+          <span>{{ r.pos }}º {{ r.player?.nickname }} · {{ r.score }}</span>
+        }
+      </div>
+    }
+  </main>
+
+  <aside class="side">
+    @if (titles().length) {
+      <h2 class="side-title">Títulos da partida</h2>
+      <div class="titles">
+        @for (t of titles(); track t.key) {
+          <div class="title" [style.--accent]="t.color">
+            <span class="t-name">{{ t.title }}</span>
+            <span class="t-who">{{ t.who }}</span>
+            <span class="t-detail">{{ t.detail }}</span>
+          </div>
+        }
+      </div>
+    }
+    <div class="actions">
+      <button matButton="outlined" class="big leave" (click)="store.leave()">Sair</button>
+      @if (store.isHost()) {
+        <button matButton="filled" class="big again" (click)="store.playAgain()">
+          <mat-icon>replay</mat-icon>
+          Jogar de novo
+        </button>
+      } @else {
+        <span class="waiting">{{ store.host()?.nickname }} pode começar outra partida</span>
+      }
+    </div>
+  </aside>
+</div>

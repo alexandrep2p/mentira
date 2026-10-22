@@ -1,0 +1,299 @@
+:host {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+}
+
+.final {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 16px 24px;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.headline {
+  text-align: center;
+  font-size: 34px;
+  line-height: 1.05;
+}
+
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.spot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  animation: rise 700ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
+
+  &.p1 {
+    animation-delay: 500ms;
+  }
+
+  &.p2 {
+    animation-delay: 250ms;
+  }
+
+  .name {
+    font-size: 14px;
+    font-weight: 600;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &.p1 .name {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  &.p1 app-avatar {
+    box-shadow: 0 0 0 3px var(--gold);
+  }
+}
+
+.crown {
+  color: var(--gold);
+  font-size: 30px;
+  width: 30px;
+  height: 30px;
+  font-variation-settings: 'FILL' 1;
+}
+
+.block {
+  width: 100%;
+  border-radius: 16px 16px 6px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgb(255 255 255 / 10%);
+
+  .pts {
+    font-size: 26px;
+  }
+
+  .place {
+    font-size: 12px;
+    color: var(--night-ink);
+  }
+}
+
+.p1 .block {
+  height: 124px;
+  background: #5b2bd9;
+
+  .pts {
+    font-size: 32px;
+  }
+}
+
+.p2 .block {
+  height: 92px;
+  background: rgb(255 255 255 / 14%);
+}
+
+.p3 .block {
+  height: 68px;
+}
+
+.rest {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 13px;
+  color: var(--night-ink);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.side-title {
+  display: none;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--night-ink);
+}
+
+.titles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.title {
+  background: rgb(255 255 255 / 8%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 20px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.t-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.t-who {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.t-detail {
+  font-size: 12px;
+  color: var(--night-ink);
+}
+
+.actions {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding-top: 8px;
+
+  .leave {
+    flex: 1;
+    --mat-button-outlined-label-text-color: #fff;
+    --mat-button-outlined-outline-color: rgb(255 255 255 / 30%);
+  }
+
+  .again {
+    flex: 2;
+    --mat-button-filled-container-color: #fff;
+    --mat-button-filled-label-text-color: #2a0e7a;
+  }
+
+  .waiting {
+    flex: 2;
+    font-size: 13px;
+    color: var(--night-ink);
+    text-align: center;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+
+@media (min-width: 960px) {
+  .final {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 32px;
+    padding: 0;
+  }
+
+  .stage {
+    flex: 1;
+    min-width: 0;
+    gap: 24px;
+  }
+
+  .headline {
+    font-size: 64px;
+    line-height: 1;
+  }
+
+  .podium {
+    gap: 16px;
+  }
+
+  .spot .name {
+    font-size: 17px;
+  }
+
+  .spot.p1 .name {
+    font-size: 19px;
+  }
+
+  .p1 .block {
+    height: 200px;
+
+    .pts {
+      font-size: 52px;
+    }
+  }
+
+  .p2 .block {
+    height: 150px;
+  }
+
+  .p3 .block {
+    height: 110px;
+  }
+
+  .block .pts {
+    font-size: 38px;
+  }
+
+  .rest {
+    font-size: 15px;
+    gap: 8px 24px;
+  }
+
+  .side {
+    flex: 0 0 340px;
+  }
+
+  .side-title {
+    display: block;
+  }
+
+  .titles {
+    grid-template-columns: 1fr;
+  }
+
+  .title {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'name detail' 'who detail';
+    align-items: center;
+    column-gap: 12px;
+    border-left: 0;
+  }
+
+  .t-name {
+    grid-area: name;
+  }
+
+  .t-who {
+    grid-area: who;
+  }
+
+  .t-detail {
+    grid-area: detail;
+    font-size: 13px;
+    text-align: right;
+  }
+}
