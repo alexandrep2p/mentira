@@ -17,6 +17,11 @@ export class VotingPhase {
   protected readonly voting = computed(() => this.view().voting!);
   protected readonly author = computed(() => this.store.player(this.voting().authorId));
   protected readonly isAuthor = computed(() => this.voting().authorId === this.view().me.id);
+  protected readonly anonymous = computed(() => this.view().settings.anonymous);
+  /** Pontinhos de progresso; no modo anônimo só há as contagens. */
+  protected readonly pips = computed(() =>
+    Array.from({ length: this.voting().eligibleCount }, (_, i) => i < this.voting().votedCount),
+  );
   protected readonly canVote = computed(() => this.voting().eligibleIds.includes(this.view().me.id));
 
   protected readonly voters = computed(() =>

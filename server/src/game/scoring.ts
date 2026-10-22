@@ -1,11 +1,11 @@
 import { TITLES, type Answer, type CardResult, type FinalTitle, type TitleKey } from '@mentira/shared';
-import type { Player, PlayerStats } from './types';
+import type { Player, PlayerStats, ScoredCard } from './types';
 
 /**
  * Calcula o resultado de um card. Quem acerta ganha +1; o autor ganha +1 por
  * pessoa enganada. Não altera os jogadores: use applyCardResult para isso.
  */
-export function scoreCard(authorId: string, answer: Answer, votes: Map<string, boolean>): CardResult {
+export function scoreCard(authorId: string, answer: Answer, votes: Map<string, boolean>): ScoredCard {
   const points = new Map<string, number>();
   const add = (id: string, delta: number) => points.set(id, (points.get(id) ?? 0) + delta);
 
@@ -24,7 +24,7 @@ export function scoreCard(authorId: string, answer: Answer, votes: Map<string, b
   };
 }
 
-export function applyCardResult(result: CardResult, players: Map<string, Player>, deltas: Map<string, number>) {
+export function applyCardResult(result: ScoredCard, players: Map<string, Player>, deltas: Map<string, number>) {
   for (const { playerId, delta } of result.points) {
     const player = players.get(playerId);
     if (!player) continue;

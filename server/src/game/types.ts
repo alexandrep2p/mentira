@@ -30,9 +30,12 @@ export interface Round {
   cardOrder: string[];
   cardIndex: number;
   votes: Map<string, boolean>;
-  cardResults: CardResult[];
+  cardResults: ScoredCard[];
   deltas: Map<string, number>;
 }
+
+/** Resultado interno: o servidor sempre sabe o autor; o RoomView pode escondê-lo. */
+export type ScoredCard = CardResult & { authorId: string };
 
 export type Result<T = {}> = ({ ok: true } & T) | { ok: false; error: ErrorCode };
 

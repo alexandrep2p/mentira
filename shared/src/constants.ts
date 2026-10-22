@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   writingSeconds: 90,
   votingSeconds: 20,
   autoAdvanceReveal: false,
+  anonymous: false,
 };
 
 export const AUTO_ADVANCE_MS = 8_000;

@@ -57,6 +57,7 @@ interface Settings {
   writingSeconds: number | null;   // null = sem limite. Padrão: 90
   votingSeconds: number | null;    // padrão: 20
   autoAdvanceReveal: boolean;      // padrão: false (quando ligado, avança após 8 s)
+  anonymous: boolean;              // padrão: false (esconde o autor na votação e na revelação)
 }
 
 interface Player {

@@ -431,3 +431,23 @@
     display: none;
   }
 }
+
+// ---------- autor no modo anônimo: mesma tela clara, para não se entregar ----------
+
+.disguise {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--surface);
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--ink-2);
+
+  .emoji {
+    font-size: 36px;
+    line-height: 1;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  }
+}

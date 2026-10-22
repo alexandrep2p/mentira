@@ -74,7 +74,7 @@ export class PlayerSidebar {
       const active = v.players.filter((p) => p.isActive).length;
       return `${v.writing.submittedIds.length} de ${active} responderam`;
     }
-    if (v?.voting) return `${v.voting.votedIds.length} de ${v.voting.eligibleIds.length} votaram`;
+    if (v?.voting) return `${v.voting.votedCount} de ${v.voting.eligibleCount} votaram`;
     return '';
   });
 
@@ -94,6 +94,8 @@ export class PlayerSidebar {
         const done = v.writing.submittedIds.includes(p.id);
         status = done ? 'Respondeu' : 'Escrevendo…';
         tone = done ? 'ok' : 'wait';
+      } else if (v.voting && v.settings.anonymous) {
+        // Sem status por jogador: quem não vota seria o autor.
       } else if (v.voting) {
         if (p.id === v.voting.authorId) {
           status = p.id === v.me.id ? 'Autor deste card' : 'Autor(a) deste card';

@@ -55,7 +55,7 @@ export class LobbyPhase {
   protected readonly settingsSummary = computed(() => {
     const s = this.view().settings;
     const fmt = (v: number | null) => (v === null ? 'sem limite' : `${v} s`);
-    return `Escrita ${fmt(s.writingSeconds)} · Voto ${fmt(s.votingSeconds)} · ${s.autoAdvanceReveal ? 'Avanço automático' : 'Avanço manual'}`;
+    return `Escrita ${fmt(s.writingSeconds)} · Voto ${fmt(s.votingSeconds)} · ${s.autoAdvanceReveal ? 'Avanço automático' : 'Avanço manual'}${s.anonymous ? ' · Modo anônimo' : ''}`;
   });
 
   protected readonly estimate = computed(() => {

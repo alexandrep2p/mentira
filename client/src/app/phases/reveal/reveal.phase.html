@@ -7,8 +7,13 @@
     <article class="face" [class.truth]="r.isTruth">
       <p class="asked">{{ reveal().question }}</p>
       <div class="by">
-        <app-avatar [player]="author()" [size]="40" />
-        <span class="name">{{ author()?.nickname }}</span>
+        @if (anonymous()) {
+          <app-avatar [size]="40" />
+          <span class="name">Quem será?</span>
+        } @else {
+          <app-avatar [player]="author()" [size]="40" />
+          <span class="name">{{ author()?.nickname }}</span>
+        }
         <div class="stamp display" role="status">{{ r.isTruth ? 'VERDADE!' : 'MENTIRA!' }}</div>
       </div>
       <p class="display quote">“{{ r.text }}”</p>
@@ -27,30 +32,38 @@
     <section class="group">
       <div class="head">
         <h2 class="ok">{{ r.isTruth ? 'Acreditaram' : 'Desconfiaram' }}</h2>
-        @if (correct().length) {
+        @if (reveal().correctCount) {
           <span class="muted">+1 cada</span>
         }
       </div>
       <div class="chips">
-        @for (p of correct(); track p.id) {
-          <span class="chip"><app-avatar [player]="p" [size]="28" />{{ p.nickname }}</span>
-        } @empty {
-          <span class="muted none">Ninguém</span>
+        @if (anonymous()) {
+          <span class="count">{{ people(reveal().correctCount) }}</span>
+        } @else {
+          @for (p of correct(); track p.id) {
+            <span class="chip"><app-avatar [player]="p" [size]="28" />{{ p.nickname }}</span>
+          } @empty {
+            <span class="muted none">Ninguém</span>
+          }
         }
       </div>
     </section>
     <section class="group">
       <div class="head">
         <h2 class="bad">{{ r.isTruth ? 'Duvidaram' : 'Caíram na conversa' }}</h2>
-        @if (fooled().length) {
-          <span class="muted">{{ author()?.nickname }} +{{ fooled().length }}</span>
+        @if (reveal().fooledCount) {
+          <span class="muted">{{ anonymous() ? 'Quem escreveu' : author()?.nickname }} +{{ reveal().fooledCount }}</span>
         }
       </div>
       <div class="chips">
-        @for (p of fooled(); track p.id) {
-          <span class="chip"><app-avatar [player]="p" [size]="28" />{{ p.nickname }}</span>
-        } @empty {
-          <span class="muted none">Ninguém</span>
+        @if (anonymous()) {
+          <span class="count">{{ people(reveal().fooledCount) }}</span>
+        } @else {
+          @for (p of fooled(); track p.id) {
+            <span class="chip"><app-avatar [player]="p" [size]="28" />{{ p.nickname }}</span>
+          } @empty {
+            <span class="muted none">Ninguém</span>
+          }
         }
       </div>
     </section>

@@ -114,6 +114,10 @@
         <mat-slide-toggle [checked]="v.settings.autoAdvanceReveal" (change)="setSetting('autoAdvanceReveal', $event.checked)">
           Avançar sozinho após a revelação (8 s)
         </mat-slide-toggle>
+        <mat-slide-toggle [checked]="v.settings.anonymous" (change)="setSetting('anonymous', $event.checked)">
+          Modo anônimo
+          <span class="toggle-hint muted">Ninguém vê quem escreveu cada resposta. Descubram conversando!</span>
+        </mat-slide-toggle>
       </section>
     } @else {
       <section class="card waiting">

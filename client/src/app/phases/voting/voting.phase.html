@@ -1,5 +1,5 @@
 @let v = voting();
-@if (isAuthor()) {
+@if (isAuthor() && !anonymous()) {
   <div class="author">
     <span class="poker" aria-hidden="true">🥸</span>
     <div class="author-body">
@@ -17,7 +17,7 @@
       </article>
     </div>
     <div class="who-voted">
-      <span>{{ v.votedIds.length }} de {{ v.eligibleIds.length }} já votaram</span>
+      <span>{{ v.votedCount }} de {{ v.eligibleCount }} já votaram</span>
       <div class="dots">
         @for (x of voters(); track x.player?.id) {
           <span class="voter" [class.pending]="!x.voted">
@@ -39,24 +39,37 @@
     <article class="claim" aria-live="polite">
       <p class="asked">{{ v.question }}</p>
       <div class="by">
-        <app-avatar [player]="author()" [size]="48" />
-        <div>
-          <span class="name">{{ author()?.nickname }}</span>
-          <span class="muted said">disse que…</span>
-        </div>
+        @if (anonymous()) {
+          <app-avatar [size]="48" />
+          <span class="name">Alguém disse que…</span>
+        } @else {
+          <app-avatar [player]="author()" [size]="48" />
+          <div>
+            <span class="name">{{ author()?.nickname }}</span>
+            <span class="muted said">disse que…</span>
+          </div>
+        }
       </div>
       <p class="display quote">“{{ v.text }}”</p>
       <div class="tally muted">
         <span class="pips" aria-hidden="true">
-          @for (x of voters(); track x.player?.id) {
-            <span class="pip" [class.on]="x.voted"></span>
+          @for (on of pips(); track $index) {
+            <span class="pip" [class.on]="on"></span>
           }
         </span>
-        {{ v.votedIds.length }} de {{ v.eligibleIds.length }} votaram
+        {{ v.votedCount }} de {{ v.eligibleCount }} votaram
       </div>
     </article>
 
-    @if (canVote()) {
+    @if (isAuthor()) {
+      <p class="disguise">
+        <span class="emoji" aria-hidden="true">🥸</span>
+        <span>
+          <strong>Essa é a sua!</strong> Você marcou {{ v.myAnswerIsTruth ? 'Verdade' : 'Mentira' }}.
+          Disfarça enquanto os outros decidem.
+        </span>
+      </p>
+    } @else if (canVote()) {
       <span class="ask">Você acredita?</span>
       <div class="buttons">
         <button type="button" class="vote verdade display" [attr.aria-pressed]="v.myVote === true" (click)="vote(true)">

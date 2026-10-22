@@ -49,7 +49,7 @@ export class RoomPage {
   protected readonly timed = computed(() => ['writing', 'voting'].includes(this.phase() ?? ''));
   protected readonly night = computed(() => {
     const v = this.view();
-    return v?.phase === 'final' || (v?.phase === 'voting' && v.voting?.authorId === v.me.id);
+    return v?.phase === 'final' || (v?.phase === 'voting' && !v.settings.anonymous && v.voting?.authorId === v.me.id);
   });
   protected readonly waitingResume = computed(
     () => !this.view() && this.store.resuming() && this.store.savedSession()?.code === this.normalizedCode(),

@@ -194,6 +194,10 @@ export class Room {
       if (typeof patch.autoAdvanceReveal !== 'boolean') return fail('INVALID_SETTINGS');
       next.autoAdvanceReveal = patch.autoAdvanceReveal;
     }
+    if ('anonymous' in patch) {
+      if (typeof patch.anonymous !== 'boolean') return fail('INVALID_SETTINGS');
+      next.anonymous = patch.anonymous;
+    }
     this.settings = next;
     return ok();
   }

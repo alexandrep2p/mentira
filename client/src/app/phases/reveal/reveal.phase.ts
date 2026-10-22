@@ -18,6 +18,7 @@ export class RevealPhase {
   protected readonly reveal = computed(() => this.view().reveal!);
   protected readonly result = computed(() => this.reveal().result);
   protected readonly author = computed(() => this.store.player(this.result().authorId));
+  protected readonly anonymous = computed(() => this.view().settings.anonymous);
   protected readonly isLastCard = computed(() => this.reveal().cardNumber === this.reveal().cardTotal);
 
   protected readonly correct = computed(() =>
@@ -27,13 +28,17 @@ export class RevealPhase {
     this.result().votes.filter((v) => !v.correct).map((v) => this.store.player(v.voterId)).filter((p) => p !== null),
   );
 
+  protected people(n: number) {
+    return n === 0 ? 'Ninguém' : `${n} ${n === 1 ? 'pessoa' : 'pessoas'}`;
+  }
+
   /** Faixa com o resultado pessoal de quem está vendo. */
   protected readonly mine = computed(() => {
     const me = this.view().me.id;
     const r = this.result();
     const delta = r.points.find((p) => p.playerId === me)?.delta ?? 0;
     if (r.authorId === me) {
-      const n = this.fooled().length;
+      const n = this.reveal().fooledCount;
       return n > 0
         ? { tone: 'good', icon: 'theater_comedy', text: `Você enganou ${n} ${n === 1 ? 'pessoa' : 'pessoas'}!`, delta }
         : { tone: 'meh', icon: 'sentiment_neutral', text: 'Ninguém caiu na sua.', delta };

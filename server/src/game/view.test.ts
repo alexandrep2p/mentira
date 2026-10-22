@@ -63,3 +63,53 @@ describe('buildView não vaza segredos', () => {
     expect(view.reveal!.result.isTruth).toBe(false);
   });
 });
+
+describe('buildView no modo anônimo', () => {
+  function anonymousRoom() {
+    const ctx = makeRoom(['A', 'B', 'C', 'D']);
+    ctx.room.setSettings(ctx.host, { anonymous: true });
+    ctx.room.setQuestions(ctx.host, ['Pergunta um?', 'Pergunta dois?']);
+    ctx.room.start(ctx.host);
+    answerAll(ctx.room, ctx.ids);
+    const author = ctx.room.currentAuthorId()!;
+    return { ...ctx, author, voters: ctx.ids.filter((id) => id !== author) };
+  }
+
+  it('na votação, só o autor sabe que o card é dele', () => {
+    const { room, author, voters } = anonymousRoom();
+    room.castVote(voters[0], true);
+    for (const id of voters) {
+      const v = buildView(room, id, 0).voting!;
+      expect(v.authorId).toBeNull();
+      expect(v.eligibleIds).toEqual([id]);
+      expect(v.votedIds).toEqual(id === voters[0] ? [id] : []);
+      expect(v).toMatchObject({ votedCount: 1, eligibleCount: 3 });
+    }
+    const mine = buildView(room, author, 0).voting!;
+    expect(mine.authorId).toBe(author);
+    expect(mine.eligibleIds).toEqual([]);
+  });
+
+  it('na revelação, esconde o autor e congela o placar até o fim da rodada', () => {
+    const { room, author, voters, host } = anonymousRoom();
+    for (const id of voters) room.castVote(id, true); // todos erram: era mentira
+    expect(room.phase).toBe('reveal');
+    for (const id of voters) {
+      const view = buildView(room, id, 0);
+      expect(view.reveal!.result.authorId).toBeNull();
+      expect(view.reveal!.result.votes.map((v) => v.voterId)).toEqual([id]);
+      expect(view.reveal!.result.points.map((p) => p.playerId)).toEqual([]);
+      expect(view.reveal).toMatchObject({ correctCount: 0, fooledCount: 3 });
+      expect(view.players.find((p) => p.id === author)!.score).toBe(0);
+    }
+    expect(buildView(room, author, 0).reveal!.result.authorId).toBe(author);
+
+    while (room.phase !== 'roundScore') {
+      if (room.phase === 'voting') for (const id of room.eligibleVoters()) room.castVote(id.id, true);
+      else room.advance(host);
+    }
+    const view = buildView(room, voters[0], 0);
+    expect(view.players.find((p) => p.id === author)!.score).toBe(3);
+    expect(view.roundScore!.topFooler).toBeNull();
+  });
+});

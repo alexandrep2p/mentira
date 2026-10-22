@@ -6,6 +6,8 @@ export interface Settings {
   /** Segundos para votar em cada card; null = sem limite. */
   votingSeconds: number | null;
   autoAdvanceReveal: boolean;
+  /** Modo anônimo: ninguém vê quem escreveu cada card, nem na revelação. */
+  anonymous: boolean;
 }
 
 export interface Answer {
@@ -20,7 +22,8 @@ export interface CardVote {
 }
 
 export interface CardResult {
-  authorId: string;
+  /** null na revelação do modo anônimo, exceto para o próprio autor. */
+  authorId: string | null;
   text: string;
   isTruth: boolean;
   votes: CardVote[];
@@ -70,10 +73,14 @@ export interface RoomView {
     question: string;
     cardNumber: number;
     cardTotal: number;
-    authorId: string;
+    /** No modo anônimo, só o próprio autor recebe o id; os outros recebem null. */
+    authorId: string | null;
     text: string;
+    /** No modo anônimo, só contém o próprio jogador (para não revelar o autor por exclusão). */
     votedIds: string[];
     eligibleIds: string[];
+    votedCount: number;
+    eligibleCount: number;
     myVote: boolean | null;
     /** A própria marcação, só para o autor do card. */
     myAnswerIsTruth: boolean | null;
@@ -82,7 +89,10 @@ export interface RoomView {
     question: string;
     cardNumber: number;
     cardTotal: number;
+    /** No modo anônimo, votes e points só trazem o próprio jogador (quem não votou seria o autor). */
     result: CardResult;
+    correctCount: number;
+    fooledCount: number;
   };
   roundScore?: {
     question: string;

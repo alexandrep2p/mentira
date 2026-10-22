@@ -44,7 +44,7 @@ function createBot(name: string) {
   const done = new Set<string>();
   let view: RoomView | null = null;
   const log = (msg: string) => console.log(`[${name}] ${msg}`);
-  const nick = (id: string) => view?.players.find((p) => p.id === id)?.nickname ?? '?';
+  const nick = (id: string | null) => view?.players.find((p) => p.id === id)?.nickname ?? '?';
 
   socket.on('connect', () => {
     socket.emit('room:join', { code, nickname: name, avatar: pick([...AVATAR_EMOJIS]) }, (res) => {

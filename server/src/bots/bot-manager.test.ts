@@ -14,7 +14,10 @@ function trainingRoom(bots = 2) {
 
 describe('BotManager', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
 
   it('adiciona bots com nomes livres e eles contam para iniciar', () => {
     const ctx = makeRoom(['Bia']);
@@ -27,6 +30,8 @@ describe('BotManager', () => {
   });
 
   it('bots respondem e votam sozinhos até a revelação', () => {
+    // Atrasos sempre no máximo: sem isso, um bot pode votar no 1º card antes da checagem.
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
     const { room, host, manager } = trainingRoom(2);
     room.setQuestions(host, ['Pergunta um?']);
     room.start(host);
