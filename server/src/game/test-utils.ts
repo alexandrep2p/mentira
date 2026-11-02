@@ -25,6 +25,20 @@ export function startedRoom(nicknames?: string[], questions = ['Pergunta um?', '
   return ctx;
 }
 
+/** Sala já iniciada no modo 2 mentiras, 1 verdade. */
+export function tripleRoom(nicknames?: string[], questions = ['Pergunta um?', 'Pergunta dois?', 'Pergunta três?']) {
+  const ctx = makeRoom(nicknames);
+  ctx.room.setSettings(ctx.host, { mode: 'twoLiesOneTruth' });
+  ctx.room.setQuestions(ctx.host, questions);
+  const res = ctx.room.start(ctx.host);
+  if (!res.ok) throw new Error(res.error);
+  return ctx;
+}
+
+export function answerAllTriples(room: Room, ids: string[]) {
+  ids.forEach((id) => room.submitTriple(id, `Verdade de ${id}`, [`Mentira A de ${id}`, `Mentira B de ${id}`]));
+}
+
 /** Todos respondem: os índices em `truths` dizem verdade, o resto mente. */
 export function answerAll(room: Room, ids: string[], truths: number[] = []) {
   ids.forEach((id, i) => room.submitAnswer(id, `Resposta de ${id}`, truths.includes(i)));

@@ -1,4 +1,4 @@
-import { AVATAR_EMOJIS } from '@mentira/shared';
+import { AVATAR_EMOJIS, TRIPLE_STATEMENTS } from '@mentira/shared';
 import type { Room } from '../game/room';
 import { BOT_NAMES, createAnswerPicker } from './answers';
 
@@ -52,12 +52,21 @@ export class BotManager {
     const roundIndex = room.roundIndex;
 
     if (room.phase === 'writing') {
+      const answered = new Set(room.answeredIds());
       for (const bot of bots) {
-        if (!room.isActive(bot) || round.answers.has(bot.id)) continue;
+        if (!room.isActive(bot) || answered.has(bot.id)) continue;
         this.schedule(state, `w${roundIndex}:${bot.id}`, rand(4000, 12000), () => {
           if (room.phase !== 'writing' || room.roundIndex !== roundIndex) return;
-          const [text, isTruth] = state.picker.pick(roundIndex, round.question);
-          if (room.submitAnswer(bot.id, text, isTruth).ok) this.onChange(room);
+          const question = room.questionFor(bot.id);
+          let done;
+          if (room.isTriple) {
+            const { truth, lies } = state.picker.pickTriple(roundIndex, question);
+            done = room.submitTriple(bot.id, truth, lies);
+          } else {
+            const [text, isTruth] = state.picker.pick(roundIndex, question);
+            done = room.submitAnswer(bot.id, text, isTruth);
+          }
+          if (done.ok) this.onChange(room);
         });
       }
     }
@@ -65,11 +74,15 @@ export class BotManager {
     if (room.phase === 'voting') {
       const cardIndex = round.cardIndex;
       const eligible = new Set(room.eligibleVoters().map((p) => p.id));
+      const voted = new Set(room.votedIds());
       for (const bot of bots) {
-        if (!eligible.has(bot.id) || round.votes.has(bot.id)) continue;
+        if (!eligible.has(bot.id) || voted.has(bot.id)) continue;
         this.schedule(state, `v${roundIndex}-${cardIndex}:${bot.id}`, rand(2500, 9000), () => {
           if (room.phase !== 'voting' || room.roundIndex !== roundIndex || room.round?.cardIndex !== cardIndex) return;
-          if (room.castVote(bot.id, Math.random() < 0.55).ok) this.onChange(room);
+          const done = room.isTriple
+            ? room.pickVote(bot.id, Math.floor(Math.random() * TRIPLE_STATEMENTS))
+            : room.castVote(bot.id, Math.random() < 0.55);
+          if (done.ok) this.onChange(room);
         });
       }
     }

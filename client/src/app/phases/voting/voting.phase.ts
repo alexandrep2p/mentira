@@ -32,10 +32,20 @@ export class VotingPhase {
     if (this.canVote()) this.store.vote(votedTruth);
   }
 
+  protected pick(index: number) {
+    if (this.canVote()) this.store.pickVote(index);
+  }
+
   protected onKey(event: KeyboardEvent) {
     const target = event.target as HTMLElement | null;
     if (event.ctrlKey || event.metaKey || event.altKey || target?.closest('input, textarea, select, [contenteditable]')) return;
     const key = event.key.toLowerCase();
+    const statements = this.voting().statements;
+    if (statements) {
+      const index = Number(key) - 1;
+      if (Number.isInteger(index) && index >= 0 && index < statements.length) this.pick(index);
+      return;
+    }
     if (key === 'v') this.vote(true);
     if (key === 'm') this.vote(false);
   }

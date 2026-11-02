@@ -2,6 +2,8 @@
 
 Jogo de festa para navegador: cada jogador responde uma pergunta com uma **verdade** ou uma **mentira**, e todo mundo vota em quem está enganando. Feito para happy hours, na mesma sala (cada um no celular) ou numa chamada de vídeo.
 
+No lobby, o host também pode escolher o modo **2 mentiras, 1 verdade**: cada jogador recebe uma pergunta sorteada, escreve três frases, e os outros tentam achar a verdade. Veja a [seção 10 do design](docs/01-design.md#10-modo-2-mentiras-1-verdade) e a [seção 14 das specs](docs/02-specs.md#14-modo-2-mentiras-1-verdade).
+
 - Design: [docs/01-design.md](docs/01-design.md)
 - Especificação técnica: [docs/02-specs.md](docs/02-specs.md)
 - Tasks: [docs/03-tasks.md](docs/03-tasks.md)
@@ -44,7 +46,7 @@ Testes unitários (Vitest) da lógica do jogo: regras da sala, pontuação, tít
 npm run simulate
 ```
 
-Simula uma partida completa com 3 clientes Socket.IO reais: 2 rodadas, pontuação, reconexão e verificação de que nenhum segredo vaza.
+Simula duas partidas completas com 3 clientes Socket.IO reais, uma em cada modo: pontuação, reconexão e verificação de que nenhum segredo vaza.
 
 ## Produção
 

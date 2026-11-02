@@ -1,5 +1,5 @@
 import { TITLES, type Answer, type CardResult, type FinalTitle, type TitleKey } from '@mentira/shared';
-import type { Player, PlayerStats, ScoredCard } from './types';
+import type { Player, PlayerStats, ScoredCard, TripleCard } from './types';
 
 /**
  * Calcula o resultado de um card. Quem acerta ganha +1; o autor ganha +1 por
@@ -21,6 +21,32 @@ export function scoreCard(authorId: string, answer: Answer, votes: Map<string, b
     isTruth: answer.isTruth,
     votes: cardVotes,
     points: [...points].map(([playerId, delta]) => ({ playerId, delta })),
+  };
+}
+
+/**
+ * Mesma pontuação de scoreCard, com a escolha de uma entre 3 frases. Devolve
+ * isTruth false para que applyCardResult conte os erros em fooledWithLies.
+ */
+export function scoreTriple(authorId: string, card: TripleCard, picks: Map<string, number>): ScoredCard {
+  const points = new Map<string, number>();
+  const add = (id: string, delta: number) => points.set(id, (points.get(id) ?? 0) + delta);
+  const counts = card.statements.map(() => 0);
+
+  const votes = [...picks].map(([voterId, pickedIndex]) => {
+    const correct = pickedIndex === card.truthIndex;
+    counts[pickedIndex]++;
+    add(correct ? voterId : authorId, 1);
+    return { voterId, votedTruth: correct, correct, pickedIndex };
+  });
+
+  return {
+    authorId,
+    text: card.statements[card.truthIndex],
+    isTruth: false,
+    votes,
+    points: [...points].map(([playerId, delta]) => ({ playerId, delta })),
+    triple: { statements: card.statements, truthIndex: card.truthIndex, picks: counts },
   };
 }
 

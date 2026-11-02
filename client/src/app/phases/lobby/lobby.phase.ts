@@ -9,7 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { LIMITS, QUESTION_BANK, type Settings } from '@mentira/shared';
+import { LIMITS, QUESTION_BANK, type GameMode, type Settings } from '@mentira/shared';
 import QRCode from 'qrcode';
 import { GameStore } from '../../core/game.store';
 import { Avatar } from '../../shared/avatar';
@@ -17,6 +17,11 @@ import { Avatar } from '../../shared/avatar';
 // 0 = sem limite (mat-select trata null como "limpar seleção")
 const WRITING_OPTIONS = [30, 60, 90, 120, 180, 300, 0];
 const VOTING_OPTIONS = [10, 15, 20, 30, 45, 60, 0];
+
+const MODES: { id: GameMode; name: string; hint: string }[] = [
+  { id: 'classic', name: 'Clássico', hint: 'Mesma pergunta para todos. Verdade ou mentira?' },
+  { id: 'twoLiesOneTruth', name: '2 mentiras, 1 verdade', hint: 'Pergunta sorteada para cada um. Ache a verdade.' },
+];
 
 @Component({
   selector: 'app-lobby-phase',
@@ -52,10 +57,14 @@ export class LobbyPhase {
   protected readonly missingPlayers = computed(() => Math.max(0, LIMITS.minPlayers - this.connectedCount()));
   protected readonly canStart = computed(() => this.missingPlayers() === 0 && this.view().questionCount > 0);
 
+  protected readonly modes = MODES;
+  protected readonly isTriple = computed(() => this.view().settings.mode === 'twoLiesOneTruth');
+
   protected readonly settingsSummary = computed(() => {
     const s = this.view().settings;
     const fmt = (v: number | null) => (v === null ? 'sem limite' : `${v} s`);
-    return `Escrita ${fmt(s.writingSeconds)} · Voto ${fmt(s.votingSeconds)} · ${s.autoAdvanceReveal ? 'Avanço automático' : 'Avanço manual'}${s.anonymous ? ' · Modo anônimo' : ''}`;
+    const mode = MODES.find((m) => m.id === s.mode)!.name;
+    return `${mode} · Escrita ${fmt(s.writingSeconds)} · Voto ${fmt(s.votingSeconds)} · ${s.autoAdvanceReveal ? 'Avanço automático' : 'Avanço manual'}${s.anonymous ? ' · Modo anônimo' : ''}${s.allowSkip && !this.isTriple() ? ' · Pode pular pergunta' : ''}`;
   });
 
   protected readonly estimate = computed(() => {
@@ -65,8 +74,14 @@ export class LobbyPhase {
     const players = Math.max(LIMITS.minPlayers, v.players.length);
     const writing = v.settings.writingSeconds ?? 90;
     const perCard = (v.settings.votingSeconds ?? 20) + 12;
+    const roundLabel = `${rounds} ${rounds === 1 ? 'rodada' : 'rodadas'}`;
+    if (this.isTriple()) {
+      const cards = rounds * players;
+      const minutes = Math.max(1, Math.round((rounds * writing + cards * perCard) / 60));
+      return `${roundLabel} · ${cards} cards · cerca de ${minutes} min`;
+    }
     const minutes = Math.max(1, Math.round((rounds * (writing * 0.7 + players * perCard)) / 60));
-    return `${rounds} ${rounds === 1 ? 'rodada' : 'rodadas'} · cerca de ${minutes} min`;
+    return `${roundLabel} · cerca de ${minutes} min`;
   });
 
   constructor() {

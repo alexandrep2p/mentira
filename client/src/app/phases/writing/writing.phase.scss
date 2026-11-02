@@ -43,6 +43,43 @@
   line-height: 1.45;
 }
 
+.statement textarea {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.statement.truth mat-label {
+  color: light-dark(var(--verdade), #3ecfae);
+  font-weight: 700;
+}
+
+.statement.lie mat-label {
+  color: var(--mentira-ink);
+  font-weight: 700;
+}
+
+.triple-hint {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.skipped {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 8px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--ink-2);
+
+  mat-icon {
+    color: var(--primary);
+  }
+}
+
 .choose {
   display: flex;
   flex-direction: column;

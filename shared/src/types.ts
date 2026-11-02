@@ -1,6 +1,9 @@
 export type Phase = 'lobby' | 'writing' | 'voting' | 'reveal' | 'roundScore' | 'final';
 
+export type GameMode = 'classic' | 'twoLiesOneTruth';
+
 export interface Settings {
+  mode: GameMode;
   /** Segundos para escrever; null = sem limite. */
   writingSeconds: number | null;
   /** Segundos para votar em cada card; null = sem limite. */
@@ -8,6 +11,8 @@ export interface Settings {
   autoAdvanceReveal: boolean;
   /** Modo anônimo: ninguém vê quem escreveu cada card, nem na revelação. */
   anonymous: boolean;
+  /** Modo clássico: cada jogador pode pular a pergunta da rodada. */
+  allowSkip: boolean;
 }
 
 export interface Answer {
@@ -15,10 +20,18 @@ export interface Answer {
   isTruth: boolean;
 }
 
+/** Resposta do modo 2 mentiras, 1 verdade. */
+export interface TripleAnswer {
+  truth: string;
+  lies: [string, string];
+}
+
 export interface CardVote {
   voterId: string;
   votedTruth: boolean;
   correct: boolean;
+  /** Frase escolhida, só no modo 2 mentiras, 1 verdade. */
+  pickedIndex?: number;
 }
 
 export interface CardResult {
@@ -28,6 +41,8 @@ export interface CardResult {
   isTruth: boolean;
   votes: CardVote[];
   points: { playerId: string; delta: number }[];
+  /** Só no modo 2 mentiras, 1 verdade. `picks` conta os votos em cada frase. */
+  triple?: { statements: string[]; truthIndex: number; picks: number[] };
 }
 
 export interface PlayerView {
@@ -65,9 +80,12 @@ export interface RoomView {
   serverNow: number;
 
   writing?: {
+    /** No 2 mentiras, 1 verdade é a pergunta deste jogador; vazia para quem só assiste. */
     question: string;
     submittedIds: string[];
+    skippedIds: string[];
     myAnswer: Answer | null;
+    myTriple: TripleAnswer | null;
   };
   voting?: {
     question: string;
@@ -84,6 +102,11 @@ export interface RoomView {
     myVote: boolean | null;
     /** A própria marcação, só para o autor do card. */
     myAnswerIsTruth: boolean | null;
+    /** As 3 frases em ordem embaralhada, sem indicar a verdade (2 mentiras, 1 verdade). */
+    statements: string[] | null;
+    myPick: number | null;
+    /** Posição da verdade, só para o autor do card. */
+    myTruthIndex: number | null;
   };
   reveal?: {
     question: string;
@@ -95,7 +118,8 @@ export interface RoomView {
     fooledCount: number;
   };
   roundScore?: {
-    question: string;
+    /** null no 2 mentiras, 1 verdade: cada jogador teve a sua pergunta. */
+    question: string | null;
     deltas: Record<string, number>;
     isLastRound: boolean;
     nextQuestion: string | null;
@@ -126,6 +150,7 @@ export type ErrorCode =
   | 'NO_QUESTIONS'
   | 'INVALID_QUESTIONS'
   | 'INVALID_ANSWER'
+  | 'INVALID_TRIPLE'
   | 'NOT_ELIGIBLE'
   | 'INVALID_SETTINGS'
   | 'INVALID_PLAYER';
@@ -148,7 +173,10 @@ export interface ClientToServerEvents {
   'host:end': (p: {}, ack: AckFn) => void;
   'host:playAgain': (p: {}, ack: AckFn) => void;
   'answer:submit': (p: Answer, ack: AckFn) => void;
+  'answer:skip': (p: {}, ack: AckFn) => void;
   'vote:cast': (p: { votedTruth: boolean }, ack: AckFn) => void;
+  'answer:submitTriple': (p: TripleAnswer, ack: AckFn) => void;
+  'vote:pick': (p: { index: number }, ack: AckFn) => void;
 }
 
 export interface ServerToClientEvents {

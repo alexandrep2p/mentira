@@ -1,4 +1,7 @@
-import type { Settings, TitleKey } from './types';
+import type { GameMode, Settings, TitleKey } from './types';
+
+export const GAME_MODES: readonly GameMode[] = ['classic', 'twoLiesOneTruth'];
+export const TRIPLE_STATEMENTS = 3;
 
 export const LIMITS = {
   minPlayers: 2,
@@ -12,10 +15,12 @@ export const LIMITS = {
 } as const;
 
 export const DEFAULT_SETTINGS: Settings = {
+  mode: 'classic',
   writingSeconds: 90,
   votingSeconds: 20,
   autoAdvanceReveal: false,
   anonymous: false,
+  allowSkip: false,
 };
 
 export const AUTO_ADVANCE_MS = 8_000;

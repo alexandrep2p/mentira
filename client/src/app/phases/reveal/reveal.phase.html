@@ -3,6 +3,36 @@
 <div class="reveal">
   <span class="eyebrow card-no">Card {{ reveal().cardNumber }} de {{ reveal().cardTotal }}</span>
 
+  @if (statements(); as list) {
+    <div class="author-line">
+      @if (anonymous()) {
+        <app-avatar [size]="40" />
+      } @else {
+        <app-avatar [player]="author()" [size]="40" />
+      }
+      <div>
+        <span class="name">{{ anonymous() ? 'Quem será?' : author()?.nickname }}</span>
+        <span class="muted">{{ reveal().question }}</span>
+      </div>
+    </div>
+
+    @for (s of list; track $index) {
+      <article class="statement" [class.truth]="s.isTruth">
+        @if (s.isTruth) {
+          <div class="stamp small display" role="status">VERDADE!</div>
+        }
+        <p class="statement-text">{{ s.text }}</p>
+        <div class="statement-votes">
+          @if (!anonymous()) {
+            @for (p of s.voters; track p.id) {
+              <span class="chip"><app-avatar [player]="p" [size]="24" />{{ p.nickname }}</span>
+            }
+          }
+          <span class="statement-count">{{ s.count }}</span>
+        </div>
+      </article>
+    }
+  } @else {
   <div class="flip">
     <article class="face" [class.truth]="r.isTruth">
       <p class="asked">{{ reveal().question }}</p>
@@ -19,6 +49,7 @@
       <p class="display quote">“{{ r.text }}”</p>
     </article>
   </div>
+  }
 
   <div class="mine" [class]="m.tone">
     <mat-icon>{{ m.icon }}</mat-icon>
@@ -28,6 +59,14 @@
     }
   </div>
 
+  @if (statements()) {
+    <div class="fooled-line">
+      <span>{{ anonymous() ? 'Quem escreveu' : author()?.nickname }} enganou {{ people(reveal().fooledCount).toLowerCase() }}</span>
+      @if (reveal().fooledCount) {
+        <strong>+{{ reveal().fooledCount }}</strong>
+      }
+    </div>
+  } @else {
   <div class="groups">
     <section class="group">
       <div class="head">
@@ -68,6 +107,7 @@
       </div>
     </section>
   </div>
+  }
 
   <div class="next">
     @if (store.isHost()) {

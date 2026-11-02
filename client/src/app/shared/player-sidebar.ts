@@ -72,7 +72,7 @@ export class PlayerSidebar {
     const v = this.store.state();
     if (v?.writing) {
       const active = v.players.filter((p) => p.isActive).length;
-      return `${v.writing.submittedIds.length} de ${active} responderam`;
+      return `${v.writing.submittedIds.length + v.writing.skippedIds.length} de ${active} responderam`;
     }
     if (v?.voting) return `${v.voting.votedCount} de ${v.voting.eligibleCount} votaram`;
     return '';
@@ -92,7 +92,8 @@ export class PlayerSidebar {
         status = 'Entra na próxima rodada';
       } else if (v.writing) {
         const done = v.writing.submittedIds.includes(p.id);
-        status = done ? 'Respondeu' : 'Escrevendo…';
+        const skipped = v.writing.skippedIds.includes(p.id);
+        status = skipped ? 'Pulou' : done ? 'Respondeu' : 'Escrevendo…';
         tone = done ? 'ok' : 'wait';
       } else if (v.voting && v.settings.anonymous) {
         // Sem status por jogador: quem não vota seria o autor.

@@ -1,12 +1,50 @@
 @let w = writing();
 <div class="writing card-on-wide">
   <div class="intro">
-    <span class="eyebrow">Responda</span>
-    <h1 class="display question">{{ w.question }}</h1>
+    <span class="eyebrow">{{ isTriple() ? 'Sua pergunta nesta rodada' : 'Responda' }}</span>
+    <h1 class="display question">{{ w.question || 'Todos estão escrevendo' }}</h1>
   </div>
 
   @if (!isActive()) {
     <p class="notice">Você entrou no meio da rodada. Assista a esta e jogue a partir da próxima!</p>
+  } @else if (isTriple()) {
+    <form class="form" (ngSubmit)="sendTriple()">
+      <mat-form-field appearance="outline" class="answer statement truth" subscriptSizing="dynamic">
+        <mat-label>A verdade</mat-label>
+        <textarea matInput name="truth" rows="2" [maxlength]="limits.answerMax" [readonly]="submitted()"
+                  [ngModel]="truth()" (ngModelChange)="truth.set($event)"></textarea>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="answer statement lie" subscriptSizing="dynamic">
+        <mat-label>Mentira 1</mat-label>
+        <textarea matInput name="lie1" rows="2" [maxlength]="limits.answerMax" [readonly]="submitted()"
+                  [ngModel]="lie1()" (ngModelChange)="lie1.set($event)"></textarea>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="answer statement lie" subscriptSizing="dynamic">
+        <mat-label>Mentira 2</mat-label>
+        <textarea matInput name="lie2" rows="2" [maxlength]="limits.answerMax" [readonly]="submitted()"
+                  [ngModel]="lie2()" (ngModelChange)="lie2.set($event)"></textarea>
+      </mat-form-field>
+      <span class="triple-hint muted">Até {{ limits.answerMax }} caracteres cada. As frases aparecem embaralhadas para os outros.</span>
+
+      <div class="send">
+        @if (submitted()) {
+          <div class="sent" role="status"><mat-icon>check_circle</mat-icon>Frases enviadas</div>
+          <button matButton="outlined" class="big" type="button" (click)="editing.set(true)">
+            <mat-icon>edit</mat-icon>Editar
+          </button>
+        } @else {
+          <button matButton="filled" class="big" type="submit" [disabled]="!canSendTriple()">
+            <mat-icon>send</mat-icon>{{ sent() ? 'Atualizar frases' : 'Enviar frases' }}
+          </button>
+        }
+      </div>
+    </form>
+  } @else if (skipped()) {
+    <div class="skipped">
+      <mat-icon>redo</mat-icon>
+      <p>Você pulou esta pergunta. Fica sem card nesta rodada, mas ainda vota nos outros.</p>
+      <button matButton="outlined" class="big" type="button" (click)="reconsider()">Responder mesmo assim</button>
+    </div>
   } @else {
     <form class="form" (ngSubmit)="send()">
       <mat-form-field appearance="outline" class="answer">
@@ -29,6 +67,11 @@
             <button matButton="filled" class="big" type="submit" [disabled]="!canSend()">
               <mat-icon>send</mat-icon>{{ w.myAnswer ? 'Atualizar resposta' : 'Enviar resposta' }}
             </button>
+            @if (canSkip()) {
+              <button matButton="outlined" class="big" type="button" (click)="skip()" [disabled]="store.busy()">
+                <mat-icon>redo</mat-icon>Pular pergunta
+              </button>
+            }
           }
         </div>
       </div>
@@ -41,6 +84,6 @@
         <app-avatar [player]="p" [size]="28" />
       }
     </div>
-    <span><strong>{{ w.submittedIds.length }} de {{ activeCount() }}</strong> já responderam</span>
+    <span><strong>{{ doneCount() }} de {{ activeCount() }}</strong> já responderam</span>
   </div>
 </div>

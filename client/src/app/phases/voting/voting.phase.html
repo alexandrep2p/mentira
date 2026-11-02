@@ -9,11 +9,20 @@
       </div>
       <article class="mine">
         <p class="asked">{{ v.question }}</p>
-        <p class="display quote">“{{ v.text }}”</p>
-        <span class="marked" [class.truth]="v.myAnswerIsTruth">
-          <mat-icon>{{ v.myAnswerIsTruth ? 'check' : 'close' }}</mat-icon>
-          Você marcou: {{ v.myAnswerIsTruth ? 'Verdade' : 'Mentira' }}
-        </span>
+        @if (v.statements; as statements) {
+          @for (s of statements; track $index; let i = $index) {
+            <div class="my-statement" [class.truth]="i === v.myTruthIndex">
+              <span>{{ s }}</span>
+              <strong>{{ i === v.myTruthIndex ? 'Sua verdade' : 'Sua mentira' }}</strong>
+            </div>
+          }
+        } @else {
+          <p class="display quote">“{{ v.text }}”</p>
+          <span class="marked" [class.truth]="v.myAnswerIsTruth">
+            <mat-icon>{{ v.myAnswerIsTruth ? 'check' : 'close' }}</mat-icon>
+            Você marcou: {{ v.myAnswerIsTruth ? 'Verdade' : 'Mentira' }}
+          </span>
+        }
       </article>
     </div>
     <div class="who-voted">
@@ -36,7 +45,7 @@
       <span class="eyebrow">Card {{ v.cardNumber }} de {{ v.cardTotal }}</span>
     </div>
 
-    <article class="claim" aria-live="polite">
+    <article class="claim" [class.compact]="v.statements" aria-live="polite">
       <p class="asked">{{ v.question }}</p>
       <div class="by">
         @if (anonymous()) {
@@ -50,7 +59,9 @@
           </div>
         }
       </div>
-      <p class="display quote">“{{ v.text }}”</p>
+      @if (!v.statements) {
+        <p class="display quote">“{{ v.text }}”</p>
+      }
       <div class="tally muted">
         <span class="pips" aria-hidden="true">
           @for (on of pips(); track $index) {
@@ -62,13 +73,35 @@
     </article>
 
     @if (isAuthor()) {
+      @if (v.statements; as statements) {
+        @for (s of statements; track $index) {
+          <p class="option static">{{ s }}</p>
+        }
+      }
       <p class="disguise">
         <span class="emoji" aria-hidden="true">🥸</span>
         <span>
-          <strong>Essa é a sua!</strong> Você marcou {{ v.myAnswerIsTruth ? 'Verdade' : 'Mentira' }}.
+          @if (v.statements) {
+            <strong>Essa é a sua!</strong> A verdade é a frase {{ v.myTruthIndex! + 1 }}.
+          } @else {
+            <strong>Essa é a sua!</strong> Você marcou {{ v.myAnswerIsTruth ? 'Verdade' : 'Mentira' }}.
+          }
           Disfarça enquanto os outros decidem.
         </span>
       </p>
+    } @else if (canVote() && v.statements) {
+      <h1 class="display which">Qual é a verdade?</h1>
+      <div class="options">
+        @for (s of v.statements; track $index; let i = $index) {
+          <button type="button" class="option" [attr.aria-pressed]="v.myPick === i" (click)="pick(i)">
+            <span class="n">{{ i + 1 }}</span>
+            <span class="option-text">{{ s }}</span>
+          </button>
+        }
+      </div>
+      <span class="hint muted">
+        @if (v.myPick !== null) { Voto registrado. } Dá para trocar o voto até a revelação<span class="keys"> · atalhos 1, 2 e 3</span>
+      </span>
     } @else if (canVote()) {
       <span class="ask">Você acredita?</span>
       <div class="buttons">
@@ -83,6 +116,11 @@
         @if (v.myVote !== null) { Voto registrado. } Dá para trocar o voto até a revelação<span class="keys"> · atalhos V e M</span>
       </span>
     } @else {
+      @if (v.statements; as statements) {
+        @for (s of statements; track $index) {
+          <p class="option static">{{ s }}</p>
+        }
+      }
       <p class="spectator muted">Você entra na próxima rodada. Por enquanto, só assiste!</p>
     }
   </div>

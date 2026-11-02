@@ -45,6 +45,18 @@
     </section>
 
     @if (store.isHost()) {
+      <section class="card modes">
+        <h2>Modo de jogo</h2>
+        <div class="mode-grid">
+          @for (m of modes; track m.id) {
+            <button type="button" class="mode" [attr.aria-pressed]="v.settings.mode === m.id" (click)="setSetting('mode', m.id)">
+              <span class="mode-name">{{ m.name }}</span>
+              <span class="mode-hint">{{ m.hint }}</span>
+            </button>
+          }
+        </div>
+      </section>
+
       <section class="card questions">
         <div class="head">
           <h2>Perguntas</h2>
@@ -52,6 +64,8 @@
         </div>
         @if (questions().length === 0) {
           <p class="empty muted">Escreva suas perguntas ou sorteie do banco de sugestões.</p>
+        } @else if (isTriple()) {
+          <p class="empty muted">Cada jogador responde todas, uma por rodada, em ordem sorteada.</p>
         }
         <ol>
           @for (q of questions(); track q; let i = $index) {
@@ -118,6 +132,12 @@
           Modo anônimo
           <span class="toggle-hint muted">Ninguém vê quem escreveu cada resposta. Descubram conversando!</span>
         </mat-slide-toggle>
+        @if (!isTriple()) {
+          <mat-slide-toggle [checked]="v.settings.allowSkip" (change)="setSetting('allowSkip', $event.checked)">
+            Permitir pular pergunta
+            <span class="toggle-hint muted">Quem pular fica sem card na rodada, mas ainda vota.</span>
+          </mat-slide-toggle>
+        }
       </section>
     } @else {
       <section class="card waiting">

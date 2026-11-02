@@ -1,5 +1,11 @@
-import type { CardResult, RoomView } from '@mentira/shared';
+import type { CardResult, RoomView, TripleAnswer } from '@mentira/shared';
 import type { Room } from './room';
+import type { TripleCard } from './types';
+
+const tripleAnswer = ({ statements, truthIndex }: TripleCard): TripleAnswer => ({
+  truth: statements[truthIndex],
+  lies: statements.filter((_, i) => i !== truthIndex) as [string, string],
+});
 
 /**
  * Único ponto que transforma o estado interno em RoomView. Nunca expõe
@@ -9,6 +15,9 @@ import type { Room } from './room';
  * No modo anônimo também esconde o autor de cada card de quem não é o autor:
  * o id, quem pode votar e quem votou (o autor sairia por exclusão), os pontos
  * da rodada em andamento e quem mais enganou na rodada.
+ *
+ * No 2 mentiras, 1 verdade, a posição da verdade só chega ao autor antes da
+ * revelação, e as frases só saem depois de embaralhadas.
  */
 export function buildView(room: Room, playerId: string, now: number): RoomView {
   const me = room.players.get(playerId);
@@ -51,46 +60,54 @@ export function buildView(room: Room, playerId: string, now: number): RoomView {
   switch (room.phase) {
     case 'writing': {
       const mine = round.answers.get(playerId);
+      const myCard = round.triples.get(playerId);
       view.writing = {
-        question: round.question,
-        submittedIds: [...round.answers.keys()],
+        question: room.questionFor(playerId),
+        submittedIds: room.answeredIds(),
+        skippedIds: [...round.skipped],
         myAnswer: mine ? { ...mine } : null,
+        myTriple: myCard ? tripleAnswer(myCard) : null,
       };
       break;
     }
     case 'voting': {
       const authorId = round.cardOrder[round.cardIndex];
-      const answer = round.answers.get(authorId)!;
-      const myVote = round.votes.get(playerId);
-      const votedIds = [...round.votes.keys()];
+      const answer = round.answers.get(authorId);
+      const card = round.triples.get(authorId);
+      const isAuthor = authorId === playerId;
+      const votedIds = room.votedIds();
       const eligibleIds = room.eligibleVoters().map((p) => p.id);
-      const hide = anonymous && authorId !== playerId;
+      const hide = anonymous && !isAuthor;
       const onlyMe = (ids: string[]) => (anonymous ? ids.filter((id) => id === playerId) : ids);
       view.voting = {
-        question: round.question,
+        question: room.questionFor(authorId),
         cardNumber: round.cardIndex + 1,
         cardTotal: round.cardOrder.length,
         authorId: hide ? null : authorId,
-        text: answer.text,
+        text: answer?.text ?? '',
         votedIds: onlyMe(votedIds),
         eligibleIds: onlyMe(eligibleIds),
         votedCount: votedIds.length,
         eligibleCount: eligibleIds.length,
-        myVote: myVote ?? null,
-        myAnswerIsTruth: authorId === playerId ? answer.isTruth : null,
+        myVote: round.votes.get(playerId) ?? null,
+        myAnswerIsTruth: isAuthor && answer ? answer.isTruth : null,
+        statements: card ? [...card.statements] : null,
+        myPick: round.picks.get(playerId) ?? null,
+        myTruthIndex: isAuthor && card ? card.truthIndex : null,
       };
       break;
     }
     case 'reveal': {
       const result: CardResult = structuredClone(round.cardResults.at(-1)!);
       const correctCount = result.votes.filter((v) => v.correct).length;
+      const question = room.questionFor(result.authorId!);
       if (anonymous) {
         result.votes = result.votes.filter((v) => v.voterId === playerId);
         result.points = result.points.filter((p) => p.playerId === playerId);
         if (result.authorId !== playerId) result.authorId = null;
       }
       view.reveal = {
-        question: round.question,
+        question,
         cardNumber: round.cardIndex + 1,
         cardTotal: round.cardOrder.length,
         result,
@@ -108,10 +125,10 @@ export function buildView(room: Room, playerId: string, now: number): RoomView {
       const top = [...fooled].sort((a, b) => b[1] - a[1])[0];
       const isLastRound = room.roundIndex + 1 >= room.questions.length;
       view.roundScore = {
-        question: round.question,
+        question: room.isTriple ? null : round.question,
         deltas: Object.fromEntries(round.deltas),
         isLastRound,
-        nextQuestion: isLastRound ? null : room.questions[room.roundIndex + 1],
+        nextQuestion: isLastRound || room.isTriple ? null : room.questions[room.roundIndex + 1],
         topFooler: !anonymous && top && top[1] > 0 ? { playerId: top[0], fooled: top[1] } : null,
       };
       break;

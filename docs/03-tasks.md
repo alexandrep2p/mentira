@@ -41,3 +41,21 @@
 - [x] **T22 · Build de produção**: o servidor serve o `client/dist` com fallback de SPA para `/sala/:code`, e `npm run build && npm start` funciona.
 - [ ] **T23 · Teste ponta a ponta manual**: percorrer os critérios de aceite da seção 13 das specs com 3+ abas e um celular na rede local. *Feito com 3 abas, uma em viewport de celular; falta testar num celular de verdade e a troca de host após 30 s.*
 - [x] **T24 · README**: como rodar, testar no celular e fazer deploy.
+
+## Fase 4 — Modo 2 mentiras, 1 verdade
+
+> Baseado na seção 14 das specs.
+
+- [x] **T25 · Protótipo visual**: telas de celular e desktop no canvas do protótipo.
+- [x] **T26 · Shared**: `GameMode`, `Settings.mode`, `TripleAnswer`, eventos novos e campos do `RoomView`.
+- [x] **T27 · Room: rodízio**: validar `mode`, criar o rodízio, preencher `assigned` e tratar quem entra no meio.
+  *Pronto quando:* os testes mostram que ninguém repete pergunta e que elas diferem na rodada quando há perguntas para todos.
+- [x] **T28 · Room: escrita e votação**: `submitTriple`, `pickVote`, embaralhar as frases e adaptar `closeWriting`, `revealCard`, `checkProgress`, `removePlayer` e `playAgain`.
+- [x] **T29 · Scoring**: `scoreTriple`, com pontos e títulos testados.
+- [x] **T30 · View**: pergunta por jogador e campos novos, com teste garantindo que `truthIndex` não vaza.
+- [x] **T31 · Handlers e bots**: eventos novos; bots escrevem 1 verdade + 2 mentiras e votam em uma frase.
+- [x] **T32 · Lobby**: seletor de modo, resumo e estimativa.
+- [x] **T33 · Escrita**: pergunta individual e 3 campos.
+- [x] **T34 · Votação**: 3 opções, atalhos 1, 2 e 3, e tela do autor.
+- [x] **T35 · Revelação e placar**: frases com votos, textos de resultado e placar sem pergunta.
+- [ ] **T36 · Simulação e teste manual**: partida no `npm run simulate` e critérios da seção 14.7 das specs. *Feito com 1 jogador e 3 bots no navegador, em viewport de celular e desktop; falta testar com várias pessoas e num celular de verdade.*

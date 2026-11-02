@@ -4,7 +4,9 @@
     <div class="intro">
       <span class="eyebrow">Fim da rodada {{ view().roundIndex + 1 }}</span>
       <h1 class="display">Placar parcial</h1>
-      <p class="muted">{{ rs.question }}</p>
+      @if (rs.question) {
+        <p class="muted">{{ rs.question }}</p>
+      }
     </div>
     <ol>
       @for (row of rows(); track row.player.id) {

@@ -22,27 +22,50 @@ export class WritingPhase {
   protected readonly view = computed(() => this.store.state()!);
   protected readonly writing = computed(() => this.view().writing!);
   protected readonly isActive = computed(() => this.view().me.isActive);
+  protected readonly isTriple = computed(() => this.view().settings.mode === 'twoLiesOneTruth');
 
   protected readonly text = signal('');
   protected readonly isTruth = signal<boolean | null>(null);
+  protected readonly truth = signal('');
+  protected readonly lie1 = signal('');
+  protected readonly lie2 = signal('');
   protected readonly editing = signal(true);
 
-  protected readonly submitted = computed(() => this.writing().myAnswer !== null && !this.editing());
+  protected readonly sent = computed(() => this.writing().myAnswer !== null || this.writing().myTriple !== null);
+  protected readonly submitted = computed(() => this.sent() && !this.editing());
   protected readonly canSend = computed(() => this.text().trim().length > 0 && this.isTruth() !== null && !this.store.busy());
+  protected readonly canSendTriple = computed(
+    () => [this.truth(), this.lie1(), this.lie2()].every((s) => s.trim().length > 0) && !this.store.busy(),
+  );
 
   protected readonly submittedPlayers = computed(() =>
     this.writing().submittedIds.map((id) => this.store.player(id)).filter((p) => p !== null),
   );
   protected readonly activeCount = computed(() => this.view().players.filter((p) => p.isActive).length);
+  protected readonly doneCount = computed(() => this.writing().submittedIds.length + this.writing().skippedIds.length);
+
+  protected readonly canSkip = computed(() => this.view().settings.allowSkip && !this.submitted());
+  /** Depois de "Responder mesmo assim", o pulo só é desfeito ao enviar a resposta. */
+  private readonly reconsidering = signal(false);
+  protected readonly skipped = computed(
+    () => this.writing().skippedIds.includes(this.view().me.id) && !this.reconsidering(),
+  );
 
   constructor() {
     // Ao voltar para a página (reconexão), recupera a resposta já enviada.
     effect(() => {
       const mine = this.writing().myAnswer;
+      const triple = this.writing().myTriple;
       untracked(() => {
         if (mine && this.editing() && !this.text()) {
           this.text.set(mine.text);
           this.isTruth.set(mine.isTruth);
+          this.editing.set(false);
+        }
+        if (triple && this.editing() && !this.truth()) {
+          this.truth.set(triple.truth);
+          this.lie1.set(triple.lies[0]);
+          this.lie2.set(triple.lies[1]);
           this.editing.set(false);
         }
       });
@@ -52,5 +75,20 @@ export class WritingPhase {
   protected async send() {
     if (!this.canSend()) return;
     if (await this.store.submitAnswer(this.text().trim(), this.isTruth()!)) this.editing.set(false);
+  }
+
+  protected skip() {
+    this.reconsidering.set(false);
+    this.store.skipQuestion();
+  }
+
+  protected reconsider() {
+    this.reconsidering.set(true);
+  }
+
+  protected async sendTriple() {
+    if (!this.canSendTriple()) return;
+    const lies: [string, string] = [this.lie1().trim(), this.lie2().trim()];
+    if (await this.store.submitTriple(this.truth().trim(), lies)) this.editing.set(false);
   }
 }

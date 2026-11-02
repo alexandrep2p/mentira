@@ -147,7 +147,10 @@ export function registerHandlers(io: GameServer) {
     socket.on('host:end', (_p, ack) => act(ack, (room, id) => room.end(id)));
     socket.on('host:playAgain', (_p, ack) => act(ack, (room, id) => room.playAgain(id)));
     socket.on('answer:submit', (p, ack) => act(ack, (room, id) => room.submitAnswer(id, p?.text, p?.isTruth)));
+    socket.on('answer:skip', (_p, ack) => act(ack, (room, id) => room.skipQuestion(id)));
     socket.on('vote:cast', (p, ack) => act(ack, (room, id) => room.castVote(id, p?.votedTruth)));
+    socket.on('answer:submitTriple', (p, ack) => act(ack, (room, id) => room.submitTriple(id, p?.truth, p?.lies)));
+    socket.on('vote:pick', (p, ack) => act(ack, (room, id) => room.pickVote(id, p?.index)));
 
     socket.on('disconnect', () => {
       const { code, playerId } = socket.data;

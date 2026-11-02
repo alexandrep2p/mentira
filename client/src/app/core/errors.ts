@@ -13,6 +13,7 @@ const MESSAGES: Record<ErrorCode | 'TIMEOUT', string> = {
   NO_QUESTIONS: 'Adicione pelo menos uma pergunta.',
   INVALID_QUESTIONS: 'Cada pergunta precisa ter de 3 a 150 caracteres.',
   INVALID_ANSWER: 'Escreva uma resposta de até 200 caracteres e marque verdade ou mentira.',
+  INVALID_TRIPLE: 'Escreva 3 frases diferentes, de até 200 caracteres cada.',
   NOT_ELIGIBLE: 'Você não pode votar neste card.',
   INVALID_SETTINGS: 'Configuração inválida.',
   INVALID_PLAYER: 'Jogador inválido.',
