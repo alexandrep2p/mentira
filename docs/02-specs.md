@@ -306,7 +306,9 @@ interface RoomView {
 - Tokens próprios: `--verdade: #1fae8c` e `--mentira: #ff5a5f`.
 - Layout mobile-first, conteúdo com `max-width: 600px` centralizado. Breakpoint de 960px no lobby para mostrar o QR grande ao lado da lista de jogadores.
 
-## 11. Banco de sugestões inicial (`questions.ts`)
+## 11. Banco de sugestões (`questions.ts`)
+
+São 28 perguntas, todas seguras para ambiente de trabalho e com respostas concretas, que funcionam nos dois modos.
 
 1. Qual foi a viagem mais inusitada que você já fez?
 2. Qual é o seu talento mais escondido?
@@ -318,8 +320,28 @@ interface RoomView {
 8. Qual foi o presente mais estranho que você já ganhou?
 9. Qual conquista inusitada você tem para contar?
 10. Qual foi a situação mais absurda em que você já se meteu?
+11. Qual era o seu apelido de infância e de onde ele veio?
+12. Qual foi a maior arte que você aprontou quando criança?
+13. O que você queria ser quando crescesse?
+14. Qual foi o seu primeiro salário e no que você gastou?
+15. Qual foi a reunião ou entrevista de emprego mais estranha que você já teve?
+16. Qual é a sua mania mais esquisita?
+17. Qual música você sabe cantar inteira sem ter orgulho disso?
+18. Qual comida todo mundo ama e você não suporta?
+19. Qual objeto você guarda há anos sem motivo nenhum?
+20. Qual foi a vez em que você mais se perdeu?
+21. Qual foi o maior susto que você já levou?
+22. Qual animal de estimação mais diferente você já teve ou quis ter?
+23. Qual foi a coisa mais corajosa (ou mais boba) que você já fez por uma aposta?
+24. Qual foi o pior corte de cabelo da sua vida?
+25. Qual coincidência inacreditável já aconteceu com você?
+26. Qual foi o lugar mais longe de casa onde você já esteve?
+27. Qual é o seu recorde pessoal mais inútil?
+28. Qual foi a fila ou a espera mais longa que você já enfrentou?
 
-No lobby, o host pode adicionar uma pergunta específica do banco ou usar "Sortear" para preencher as vagas restantes sem repetir.
+No lobby, o host pode adicionar uma pergunta específica do banco ou usar "Sortear" para preencher as vagas restantes sem repetir. A sala continua aceitando no máximo 10 perguntas.
+
+Cada pergunta do banco tem respostas próprias para os bots em `server/src/bots/answers.ts`: as 10 primeiras com 4 respostas e as novas com 3 verdades e 3 mentiras. Os bots usam as respostas próprias antes de recorrer às genéricas. Um teste garante que toda pergunta do banco tem pelo menos 1 verdade e 2 mentiras, o mínimo para o modo 2 mentiras, 1 verdade.
 
 ## 12. Scripts e execução
 

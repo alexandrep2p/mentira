@@ -144,7 +144,7 @@ Com "sem limite", o host avança manualmente (útil quando a conversa sobre uma 
 
 1. Nome do jogo: **Mentira!**
 2. O autor do card **aparece** durante a votação.
-3. O banco de sugestões começa com **10 perguntas** para testes (lista em `02-specs.md`) e pode crescer depois.
+3. O banco de sugestões tem **28 perguntas** (lista em `02-specs.md`) e pode crescer depois.
 
 ## 10. Modo 2 mentiras, 1 verdade
 

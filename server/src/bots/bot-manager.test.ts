@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { HOST_GRACE_MS } from '@mentira/shared';
+import { HOST_GRACE_MS, QUESTION_BANK } from '@mentira/shared';
 import { makeRoom } from '../game/test-utils';
 import type { Room } from '../game/room';
-import { createAnswerPicker } from './answers';
+import { ANSWERS, createAnswerPicker } from './answers';
 import { BotManager } from './bot-manager';
 
 /** Sala com 1 humano (host) e N bots; onChange faz o papel do broadcast. */
@@ -81,6 +81,23 @@ describe('BotManager', () => {
       manager.react(room);
     }
     expect(room.phase).toBe('roundScore');
+  });
+
+  it('toda pergunta do banco tem respostas próprias, com verdades e mentiras suficientes', () => {
+    for (const question of QUESTION_BANK) {
+      const answers = ANSWERS[question] ?? [];
+      expect(answers.filter(([, truth]) => truth).length, question).toBeGreaterThanOrEqual(1);
+      expect(answers.filter(([, truth]) => !truth).length, question).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('com respostas próprias sobrando, os bots não usam as genéricas', () => {
+    const picker = createAnswerPicker();
+    const question = QUESTION_BANK[15];
+    const own = new Set(ANSWERS[question].map(([text]) => text));
+    for (let i = 0; i < ANSWERS[question].length; i++) expect(own.has(picker.pick(0, question)[0])).toBe(true);
+    const { truth, lies } = createAnswerPicker().pickTriple(0, question);
+    expect([truth, ...lies].every((text) => own.has(text))).toBe(true);
   });
 
   it('frases dos bots nunca se repetem no mesmo card, mesmo com o banco esgotado', () => {
