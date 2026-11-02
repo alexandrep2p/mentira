@@ -146,7 +146,10 @@ export class GameStore {
   end = () => this.run('host:end', {});
   playAgain = () => this.run('host:playAgain', {});
   submitAnswer = (text: string, isTruth: boolean) => this.run('answer:submit', { text, isTruth });
+  skipQuestion = () => this.run('answer:skip', {});
   vote = (votedTruth: boolean) => this.run('vote:cast', { votedTruth });
+  submitTriple = (truth: string, lies: [string, string]) => this.run('answer:submitTriple', { truth, lies });
+  pickVote = (index: number) => this.run('vote:pick', { index });
 
   /** Emite, mostra o erro num snackbar e devolve os dados (ou null). */
   private async run<E extends ClientEvent>(event: E, payload: Parameters<ClientToServerEvents[E]>[0]) {

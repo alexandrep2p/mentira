@@ -27,11 +27,24 @@ export interface Round {
   index: number;
   question: string;
   answers: Map<string, Answer>;
+  /** Quem pulou a pergunta (modo clássico): não tem card, mas não trava a escrita. */
+  skipped: Set<string>;
   cardOrder: string[];
   cardIndex: number;
   votes: Map<string, boolean>;
+  /** Pergunta de cada jogador (2 mentiras, 1 verdade). */
+  assigned: Map<string, string>;
+  triples: Map<string, TripleCard>;
+  /** Frase escolhida por votante (2 mentiras, 1 verdade). */
+  picks: Map<string, number>;
   cardResults: ScoredCard[];
   deltas: Map<string, number>;
+}
+
+/** As frases já embaralhadas; truthIndex é a posição da verdade. */
+export interface TripleCard {
+  statements: string[];
+  truthIndex: number;
 }
 
 /** Resultado interno: o servidor sempre sabe o autor; o RoomView pode escondê-lo. */

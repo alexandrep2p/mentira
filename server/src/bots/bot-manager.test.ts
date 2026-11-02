@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HOST_GRACE_MS } from '@mentira/shared';
 import { makeRoom } from '../game/test-utils';
 import type { Room } from '../game/room';
+import { createAnswerPicker } from './answers';
 import { BotManager } from './bot-manager';
 
 /** Sala com 1 humano (host) e N bots; onChange faz o papel do broadcast. */
@@ -55,6 +56,39 @@ describe('BotManager', () => {
       manager.react(room);
     }
     expect(room.phase).toBe('roundScore');
+  });
+
+  it('no 2 mentiras, 1 verdade, bots escrevem 3 frases e votam sozinhos', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
+    const { room, host, manager } = trainingRoom(2);
+    room.setSettings(host, { mode: 'twoLiesOneTruth' });
+    room.setQuestions(host, ['Pergunta um?']);
+    room.start(host);
+    manager.react(room);
+
+    room.submitTriple(host, 'Verdade', ['Mentira um', 'Mentira dois']);
+    manager.react(room);
+    vi.advanceTimersByTime(13_000);
+    expect(room.phase).toBe('voting');
+    expect(room.round!.triples.size).toBe(3);
+
+    for (let card = 0; card < 3; card++) {
+      if (room.currentAuthorId() !== host) room.pickVote(host, 0);
+      manager.react(room);
+      vi.advanceTimersByTime(10_000);
+      expect(room.phase).toBe('reveal');
+      room.advance(host);
+      manager.react(room);
+    }
+    expect(room.phase).toBe('roundScore');
+  });
+
+  it('frases dos bots nunca se repetem no mesmo card, mesmo com o banco esgotado', () => {
+    const picker = createAnswerPicker();
+    for (let i = 0; i < 20; i++) {
+      const { truth, lies } = picker.pickTriple(0, 'Pergunta fora do banco?');
+      expect(new Set([truth, ...lies]).size).toBe(3);
+    }
   });
 
   it('bot nunca vira host', () => {

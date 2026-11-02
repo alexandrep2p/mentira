@@ -3,14 +3,17 @@ import {
   AUTO_ADVANCE_MS,
   AVATAR_EMOJIS,
   DEFAULT_SETTINGS,
+  GAME_MODES,
   HOST_GRACE_MS,
   LIMITS,
   PLAYER_COLORS,
+  TRIPLE_STATEMENTS,
   type FinalTitle,
+  type GameMode,
   type Phase,
   type Settings,
 } from '@mentira/shared';
-import { applyCardResult, computeRanking, computeTitles, scoreCard } from './scoring';
+import { applyCardResult, computeRanking, computeTitles, scoreCard, scoreTriple } from './scoring';
 import { emptyStats, fail, ok, type Player, type Result, type Round } from './types';
 
 export interface RoomDeps {
@@ -40,6 +43,9 @@ export class Room {
   emptySince: number | null = null;
   final: { ranking: { playerId: string; score: number }[]; titles: FinalTitle[] } | null = null;
   private joinCounter = 0;
+  /** Rodízio do 2 mentiras, 1 verdade: perguntas embaralhadas + deslocamento de cada jogador. */
+  private questionOrder: string[] = [];
+  private readonly offsets = new Map<string, number>();
 
   constructor(
     readonly code: string,
@@ -49,6 +55,27 @@ export class Room {
   }
 
   // ---------- consultas ----------
+
+  get isTriple() {
+    return this.settings.mode === 'twoLiesOneTruth';
+  }
+
+  /** Pergunta que o jogador responde na rodada atual. */
+  questionFor(playerId: string) {
+    return (this.isTriple ? this.round?.assigned.get(playerId) : this.round?.question) ?? '';
+  }
+
+  answeredIds() {
+    const round = this.round;
+    if (!round) return [];
+    return [...(this.isTriple ? round.triples : round.answers).keys()];
+  }
+
+  votedIds() {
+    const round = this.round;
+    if (!round) return [];
+    return [...(this.isTriple ? round.picks : round.votes).keys()];
+  }
 
   isActive(player: Player) {
     return player.activeFromRound <= this.roundIndex;
@@ -182,6 +209,10 @@ export class Room {
     const seconds = (value: unknown, range: { min: number; max: number }) =>
       value === null || (Number.isInteger(value) && (value as number) >= range.min && (value as number) <= range.max);
 
+    if ('mode' in patch) {
+      if (!GAME_MODES.includes(patch.mode as GameMode)) return fail('INVALID_SETTINGS');
+      next.mode = patch.mode as GameMode;
+    }
     if ('writingSeconds' in patch) {
       if (!seconds(patch.writingSeconds, LIMITS.writingSeconds)) return fail('INVALID_SETTINGS');
       next.writingSeconds = patch.writingSeconds ?? null;
@@ -198,6 +229,10 @@ export class Room {
       if (typeof patch.anonymous !== 'boolean') return fail('INVALID_SETTINGS');
       next.anonymous = patch.anonymous;
     }
+    if ('allowSkip' in patch) {
+      if (typeof patch.allowSkip !== 'boolean') return fail('INVALID_SETTINGS');
+      next.allowSkip = patch.allowSkip;
+    }
     this.settings = next;
     return ok();
   }
@@ -208,6 +243,7 @@ export class Room {
     const connected = [...this.players.values()].filter((p) => p.connected).length;
     if (connected < LIMITS.minPlayers) return fail('NOT_ENOUGH_PLAYERS');
     if (this.questions.length === 0) return fail('NO_QUESTIONS');
+    if (this.isTriple) this.buildRotation();
     this.startRound(0);
     return ok();
   }
@@ -217,21 +253,62 @@ export class Room {
   submitAnswer(playerId: string, text: unknown, isTruth: unknown): Result {
     const player = this.players.get(playerId);
     if (!player) return fail('NOT_IN_ROOM');
-    if (this.phase !== 'writing' || !this.round) return fail('WRONG_PHASE');
+    if (this.phase !== 'writing' || !this.round || this.isTriple) return fail('WRONG_PHASE');
     if (!this.isActive(player)) return fail('NOT_ELIGIBLE');
     const value = typeof text === 'string' ? text.trim() : '';
     if (!value || value.length > LIMITS.answerMax || typeof isTruth !== 'boolean') return fail('INVALID_ANSWER');
     this.round.answers.set(playerId, { text: value, isTruth });
+    this.round.skipped.delete(playerId);
+    this.checkProgress();
+    return ok();
+  }
+
+  /** Só no clássico, com a opção ligada. Enviar uma resposta depois desfaz o pulo. */
+  skipQuestion(playerId: string): Result {
+    const player = this.players.get(playerId);
+    if (!player) return fail('NOT_IN_ROOM');
+    if (this.phase !== 'writing' || !this.round || this.isTriple || !this.settings.allowSkip) return fail('WRONG_PHASE');
+    if (!this.isActive(player)) return fail('NOT_ELIGIBLE');
+    this.round.answers.delete(playerId);
+    this.round.skipped.add(playerId);
+    this.checkProgress();
+    return ok();
+  }
+
+  /** As frases são embaralhadas aqui: a ordem de escrita nunca sai do servidor. */
+  submitTriple(playerId: string, truth: unknown, lies: unknown): Result {
+    const player = this.players.get(playerId);
+    if (!player) return fail('NOT_IN_ROOM');
+    if (this.phase !== 'writing' || !this.round || !this.isTriple) return fail('WRONG_PHASE');
+    if (!this.isActive(player)) return fail('NOT_ELIGIBLE');
+    if (!Array.isArray(lies) || lies.length !== TRIPLE_STATEMENTS - 1) return fail('INVALID_TRIPLE');
+    const values = [truth, ...lies].map((v) => (typeof v === 'string' ? v.trim() : ''));
+    if (values.some((v) => !v || v.length > LIMITS.answerMax)) return fail('INVALID_TRIPLE');
+    if (new Set(values.map((v) => v.toLocaleLowerCase('pt-BR'))).size !== values.length) return fail('INVALID_TRIPLE');
+    const statements = this.shuffle(values);
+    this.round.triples.set(playerId, { statements, truthIndex: statements.indexOf(values[0]) });
     this.checkProgress();
     return ok();
   }
 
   castVote(playerId: string, votedTruth: unknown): Result {
     if (!this.players.has(playerId)) return fail('NOT_IN_ROOM');
-    if (this.phase !== 'voting' || !this.round) return fail('WRONG_PHASE');
+    if (this.phase !== 'voting' || !this.round || this.isTriple) return fail('WRONG_PHASE');
     if (!this.eligibleVoters().some((p) => p.id === playerId)) return fail('NOT_ELIGIBLE');
     if (typeof votedTruth !== 'boolean') return fail('NOT_ELIGIBLE');
     this.round.votes.set(playerId, votedTruth);
+    this.checkProgress();
+    return ok();
+  }
+
+  pickVote(playerId: string, index: unknown): Result {
+    if (!this.players.has(playerId)) return fail('NOT_IN_ROOM');
+    if (this.phase !== 'voting' || !this.round || !this.isTriple) return fail('WRONG_PHASE');
+    if (!this.eligibleVoters().some((p) => p.id === playerId)) return fail('NOT_ELIGIBLE');
+    if (!Number.isInteger(index) || (index as number) < 0 || (index as number) >= TRIPLE_STATEMENTS) {
+      return fail('NOT_ELIGIBLE');
+    }
+    this.round.picks.set(playerId, index as number);
     this.checkProgress();
     return ok();
   }
@@ -278,6 +355,8 @@ export class Room {
     this.round = null;
     this.final = null;
     this.deadline = null;
+    this.questionOrder = [];
+    this.offsets.clear();
     for (const p of this.players.values()) {
       p.score = 0;
       p.stats = emptyStats();
@@ -317,24 +396,54 @@ export class Room {
       index,
       question: this.questions[index],
       answers: new Map(),
+      skipped: new Set(),
       cardOrder: [],
       cardIndex: 0,
       votes: new Map(),
+      assigned: new Map(),
+      triples: new Map(),
+      picks: new Map(),
       cardResults: [],
       deltas: new Map(),
     };
+    if (this.isTriple) this.assignQuestions();
     this.phase = 'writing';
     this.deadline = this.deadlineIn(this.settings.writingSeconds);
   }
 
+  /** Deslocamentos distintos dão perguntas distintas enquanto houver perguntas para todos. */
+  private buildRotation() {
+    this.questionOrder = this.shuffle(this.questions);
+    this.offsets.clear();
+    this.shuffle([...this.players.keys()]).forEach((id, i) => this.offsets.set(id, i % this.questionOrder.length));
+  }
+
+  private assignQuestions() {
+    const round = this.round!;
+    const total = this.questionOrder.length;
+    for (const player of this.activePlayers()) {
+      const offset = this.offsets.get(player.id) ?? this.leastUsedOffset();
+      this.offsets.set(player.id, offset);
+      round.assigned.set(player.id, this.questionOrder[(offset + round.index) % total]);
+    }
+  }
+
+  private leastUsedOffset() {
+    const uses = this.questionOrder.map(() => 0);
+    for (const offset of this.offsets.values()) uses[offset]++;
+    return uses.indexOf(Math.min(...uses));
+  }
+
   private closeWriting() {
     const round = this.round!;
-    for (const [id, answer] of round.answers) {
-      const player = this.players.get(id);
-      if (!player) round.answers.delete(id);
-      else if (answer.isTruth) player.stats.truthsWritten++;
+    if (!this.isTriple) {
+      for (const [id, answer] of round.answers) {
+        const player = this.players.get(id);
+        if (!player) round.answers.delete(id);
+        else if (answer.isTruth) player.stats.truthsWritten++;
+      }
     }
-    round.cardOrder = this.shuffle([...round.answers.keys()]);
+    round.cardOrder = this.shuffle(this.answeredIds());
     if (round.cardOrder.length === 0) this.toRoundScore();
     else this.startCard(0);
   }
@@ -343,6 +452,7 @@ export class Room {
     const round = this.round!;
     round.cardIndex = index;
     round.votes = new Map();
+    round.picks = new Map();
     this.phase = 'voting';
     this.deadline = this.deadlineIn(this.settings.votingSeconds);
     this.checkProgress();
@@ -351,10 +461,11 @@ export class Room {
   private revealCard() {
     const round = this.round!;
     const authorId = round.cardOrder[round.cardIndex];
-    const answer = round.answers.get(authorId)!;
     const eligible = new Set(this.eligibleVoters().map((p) => p.id));
-    const votes = new Map([...round.votes].filter(([id]) => eligible.has(id)));
-    const result = scoreCard(authorId, answer, votes);
+    const onlyEligible = <V>(votes: Map<string, V>) => new Map([...votes].filter(([id]) => eligible.has(id)));
+    const result = this.isTriple
+      ? scoreTriple(authorId, round.triples.get(authorId)!, onlyEligible(round.picks))
+      : scoreCard(authorId, round.answers.get(authorId)!, onlyEligible(round.votes));
     applyCardResult(result, this.players, round.deltas);
     round.cardResults.push(result);
     this.phase = 'reveal';
@@ -390,11 +501,14 @@ export class Room {
     if (!round) return;
     if (this.phase === 'writing') {
       const connected = this.activePlayers().filter((p) => p.connected);
-      if (connected.length > 0 && connected.every((p) => round.answers.has(p.id))) this.closeWriting();
+      const answered = new Set(this.answeredIds());
+      const done = (id: string) => answered.has(id) || round.skipped.has(id);
+      if (connected.length > 0 && connected.every((p) => done(p.id))) this.closeWriting();
     } else if (this.phase === 'voting') {
       const eligible = this.eligibleVoters();
       const connected = eligible.filter((p) => p.connected);
-      const everyoneVoted = connected.length > 0 && connected.every((p) => round.votes.has(p.id));
+      const voted = new Set(this.votedIds());
+      const everyoneVoted = connected.length > 0 && connected.every((p) => voted.has(p.id));
       if (eligible.length === 0 || everyoneVoted) this.revealCard();
     }
   }
@@ -404,7 +518,10 @@ export class Room {
     if (round) {
       const isCurrentAuthor = this.phase === 'voting' && this.currentAuthorId() === playerId;
       round.answers.delete(playerId);
+      round.skipped.delete(playerId);
       round.votes.delete(playerId);
+      round.triples.delete(playerId);
+      round.picks.delete(playerId);
       if (this.phase === 'voting' || this.phase === 'reveal') {
         // Cards ainda não revelados desse jogador saem da fila.
         const upcoming = round.cardOrder.slice(round.cardIndex + 1).filter((id) => id !== playerId);
@@ -412,6 +529,7 @@ export class Room {
         round.cardOrder = [...kept, ...upcoming];
       }
       this.players.delete(playerId);
+      this.offsets.delete(playerId);
       if (isCurrentAuthor) {
         round.cardOrder.splice(round.cardIndex, 1);
         if (round.cardIndex < round.cardOrder.length) this.startCard(round.cardIndex);
@@ -419,6 +537,7 @@ export class Room {
       }
     } else {
       this.players.delete(playerId);
+      this.offsets.delete(playerId);
     }
 
     if (playerId === this.hostId) {

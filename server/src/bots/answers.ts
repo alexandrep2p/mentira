@@ -1,4 +1,4 @@
-import { QUESTION_BANK } from '@mentira/shared';
+import { QUESTION_BANK, type TripleAnswer } from '@mentira/shared';
 
 export const BOT_NAMES = ['Bia', 'Caio', 'Duda', 'Edu', 'Fabi', 'Gui', 'Helô', 'Igor'];
 
@@ -95,5 +95,23 @@ export function createAnswerPicker() {
     taken.add(choice[0]);
     return choice;
   };
-  return { pick: pickAnswer, reset: () => used.clear() };
+  /** 1 verdade + 2 mentiras, sempre diferentes entre si, mesmo com o banco esgotado. */
+  const pickTriple = (round: number, question: string): TripleAnswer => {
+    const taken = used.get(round) ?? new Set<string>();
+    used.set(round, taken);
+    const chosen = new Set<string>();
+    const pickOne = (isTruth: boolean) => {
+      const matching = (items: [string, boolean][]) =>
+        items.filter(([text, truth]) => truth === isTruth && !chosen.has(text)).map(([text]) => text);
+      const fresh = (items: string[]) => items.filter((text) => !taken.has(text));
+      const own = fresh(matching(ANSWERS[question] ?? []));
+      const generic = matching(GENERIC);
+      const text = pick(own.length ? own : fresh(generic).length ? fresh(generic) : generic);
+      taken.add(text);
+      chosen.add(text);
+      return text;
+    };
+    return { truth: pickOne(true), lies: [pickOne(false), pickOne(false)] };
+  };
+  return { pick: pickAnswer, pickTriple, reset: () => used.clear() };
 }

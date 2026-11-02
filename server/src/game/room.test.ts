@@ -2,6 +2,60 @@ import { describe, expect, it } from 'vitest';
 import { AVATAR_EMOJIS, HOST_GRACE_MS, LIMITS } from '@mentira/shared';
 import { answerAll, makeRoom, startedRoom } from './test-utils';
 
+describe('pular pergunta', () => {
+  const skipRoom = (nicknames?: string[]) => {
+    const ctx = makeRoom(nicknames);
+    ctx.room.setSettings(ctx.host, { allowSkip: true });
+    ctx.room.setQuestions(ctx.host, ['Pergunta um?', 'Pergunta dois?']);
+    ctx.room.start(ctx.host);
+    return ctx;
+  };
+
+  it('fica desligado por padrão e só o host liga', () => {
+    const { room, ids } = startedRoom();
+    expect(room.settings.allowSkip).toBe(false);
+    expect(room.skipQuestion(ids[0])).toEqual({ ok: false, error: 'WRONG_PHASE' });
+    const lobby = makeRoom();
+    expect(lobby.room.setSettings(lobby.ids[1], { allowSkip: true })).toEqual({ ok: false, error: 'NOT_HOST' });
+    expect(lobby.room.setSettings(lobby.host, { allowSkip: 'sim' as never })).toEqual({ ok: false, error: 'INVALID_SETTINGS' });
+  });
+
+  it('não existe no modo 2 mentiras, 1 verdade', () => {
+    const { room, host, ids } = makeRoom();
+    room.setSettings(host, { allowSkip: true, mode: 'twoLiesOneTruth' });
+    room.setQuestions(host, ['Pergunta um?']);
+    room.start(host);
+    expect(room.skipQuestion(ids[1])).toEqual({ ok: false, error: 'WRONG_PHASE' });
+  });
+
+  it('quem pula não trava a fase, fica sem card e ainda vota', () => {
+    const { room, ids } = skipRoom();
+    room.submitAnswer(ids[0], 'Resposta A', true);
+    room.submitAnswer(ids[1], 'Resposta B', false);
+    expect(room.phase).toBe('writing');
+    room.skipQuestion(ids[2]);
+    expect(room.phase).toBe('voting');
+    expect(room.round!.cardOrder).not.toContain(ids[2]);
+    expect(room.eligibleVoters().map((p) => p.id)).toContain(ids[2]);
+  });
+
+  it('pular apaga a resposta enviada, e responder desfaz o pulo', () => {
+    const { room, ids } = skipRoom();
+    room.submitAnswer(ids[0], 'Resposta', true);
+    room.skipQuestion(ids[0]);
+    expect(room.round!.answers.has(ids[0])).toBe(false);
+    room.submitAnswer(ids[0], 'Mudei de ideia', true);
+    expect(room.round!.skipped.has(ids[0])).toBe(false);
+    expect(room.round!.answers.has(ids[0])).toBe(true);
+  });
+
+  it('se todos pulam, vai direto para o placar da rodada', () => {
+    const { room, ids } = skipRoom();
+    ids.forEach((id) => room.skipQuestion(id));
+    expect(room.phase).toBe('roundScore');
+  });
+});
+
 describe('lobby', () => {
   it('o primeiro jogador vira host', () => {
     const { room, ids } = makeRoom();

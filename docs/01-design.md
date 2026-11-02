@@ -22,6 +22,8 @@ Limites: **mínimo 2 jogadores** (incluindo o host), **sem máximo** (o host con
 
 **Modo treino (oculto):** abrir o site com `?bots=N` (ex.: `/?bots=3`) e criar uma sala coloca N bots (até 8) que respondem e votam sozinhos. Não aparece em nenhum lugar da interface.
 
+**Modos de jogo:** o host escolhe o modo no lobby. As seções 3 a 6 descrevem o **Clássico**. O modo **2 mentiras, 1 verdade** está na seção 10.
+
 ## 3. Fluxo do jogo
 
 ```
@@ -48,6 +50,7 @@ LOBBY ──► [ RODADA 1 ] ──► [ RODADA 2 ] ──► … ──► PLAC
 - Cada um escreve uma resposta (até 200 caracteres) e marca, em segredo, se ela é **Verdade** ou **Mentira**.
 - Dá para editar até confirmar. A tela mostra quem já respondeu (sem revelar o conteúdo).
 - A fase termina quando todos confirmam ou o tempo acaba. Quem não respondeu fica sem card nessa rodada.
+- Se o host marcou **Permitir pular pergunta**, cada jogador pode pular a pergunta da rodada. Quem pula fica sem card, não segura a fase e ainda vota nos cards dos outros. Dá para voltar atrás respondendo antes de a fase fechar. Vale só no modo Clássico.
 
 ### 3.3 Votação (uma resposta por vez)
 - As respostas da rodada são **embaralhadas** e apresentadas uma de cada vez, mostrando **o autor** (é preciso saber de quem é para julgar).
@@ -116,6 +119,7 @@ Sempre visível: barra superior com código da sala, rodada atual (2/5) e o pró
 | Tempo de escrita | 90 s | 30–300 s, ou sem limite |
 | Tempo de voto por card | 20 s | 10–60 s, ou sem limite |
 | Avanço automático após revelação | desligado | ligado (8 s) |
+| Permitir pular pergunta (Clássico) | desligado | ligado |
 | Perguntas | — | 1–10 |
 
 Com "sem limite", o host avança manualmente (útil quando a conversa sobre uma história rende).
@@ -141,3 +145,54 @@ Com "sem limite", o host avança manualmente (útil quando a conversa sobre uma 
 1. Nome do jogo: **Mentira!**
 2. O autor do card **aparece** durante a votação.
 3. O banco de sugestões começa com **10 perguntas** para testes (lista em `02-specs.md`) e pode crescer depois.
+
+## 10. Modo 2 mentiras, 1 verdade
+
+> Status: implementado · 2026-11-01 · [Protótipo visual](https://claude.ai/artifact/AmWtccZt51rh71M7RESEBm), página "2 mentiras, 1 verdade"
+
+### 10.1 Ideia
+
+Cada jogador recebe uma pergunta sorteada, escreve **duas mentiras e uma verdade**, e os outros tentam descobrir qual frase é a verdadeira. O grupo conhece mais histórias por rodada, e enganar passa a depender de inventar mentiras tão boas quanto a verdade.
+
+### 10.2 Fluxo
+
+```
+LOBBY (escolhe o modo) ──► [ RODADA 1 ] ──► … ──► [ RODADA N ] ──► PLACAR FINAL
+                              │
+                              ├─ ESCRITA     cada um responde a sua pergunta com 3 frases
+                              ├─ VOTAÇÃO     um card por jogador: VOTAR ──► REVELAR
+                              └─ PLACAR DA RODADA
+```
+
+### 10.3 Regras
+
+| Tema | Regra |
+|---|---|
+| Ativação | Seletor de modo no lobby, só o host altera. O padrão é o Clássico |
+| Perguntas | Mesmo editor, banco e sorteio do Clássico; 1–10 perguntas |
+| Rodadas | Uma por pergunta: N perguntas = N rodadas. Cada jogador responde todas, uma por rodada |
+| Distribuição | Rodízio aleatório: na mesma rodada, cada um tem uma pergunta diferente enquanto houver perguntas para todos. Com mais jogadores que perguntas, algumas se repetem na rodada, mas ninguém repete pergunta entre rodadas |
+| Escrita | 3 campos (1 verdade, 2 mentiras), até 200 caracteres cada e diferentes entre si. O envio só vale completo; quem não enviar fica sem card nessa rodada |
+| Votação | Um card por autor, com a pergunta dele e as 3 frases em ordem embaralhada. Cada votante escolhe uma: "qual é a verdade?". O autor não vota; dá para trocar o voto até a revelação |
+| Revelação | Destaca a verdade e mostra quem votou em cada frase |
+| Entrou no meio | Joga a partir da rodada seguinte e responde só as rodadas restantes |
+| Modo anônimo | Compatível, com as mesmas regras de esconder o autor |
+
+### 10.4 Pontuação e títulos
+
+A pontuação é igual à do Clássico: **+1** para quem acha a verdade e **+1** para o autor por pessoa enganada. Quem não vota ganha 0 e não conta como enganado.
+
+Exemplo: Carla tem 4 votantes. Bruno acha a verdade e ganha **+1**. Os outros 3 erram, e Carla ganha **+3**.
+
+No final, valem **Mestre da Mentira** e **Detector de Mentiras**. "Ninguém acredita em mim" e "Livro Aberto" não se aplicam, porque toda resposta tem exatamente uma verdade.
+
+### 10.5 Telas que mudam
+
+| Tela | Mudança |
+|---|---|
+| Lobby | Seletor de modo; a estimativa mostra rodadas, cards e tempo |
+| Escrita | Pergunta individual e 3 campos, sem o seletor V/M |
+| Votação | 3 opções em vez de Verdade/Mentira; no desktop, atalhos 1, 2 e 3 |
+| Votação (autor) | Mostra as 3 frases e qual é a verdade dele |
+| Revelação | As 3 frases, com a verdade destacada e os votos em cada uma |
+| Placar da rodada | Sem pergunta da rodada nem "próxima pergunta", porque cada jogador teve a sua |

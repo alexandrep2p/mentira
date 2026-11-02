@@ -31,8 +31,12 @@ function makeClient(name: string): Client {
   socket.on('room:state', (view) => {
     socket.view = view;
     const raw = JSON.stringify(view);
-    if (view.phase === 'voting' && /"isTruth"|votedTruth/.test(raw)) leaks.push(`${name}: segredo na votação`);
+    if (view.phase === 'voting' && /"isTruth"|votedTruth|"truthIndex"/.test(raw)) leaks.push(`${name}: segredo na votação`);
+    if (view.phase === 'voting' && view.voting!.authorId !== view.me.id && view.voting!.myTruthIndex !== null) {
+      leaks.push(`${name}: posição da verdade na votação`);
+    }
     if (view.phase === 'writing' && raw.split('"text"').length > 2) leaks.push(`${name}: resposta alheia na escrita`);
+    if (view.phase === 'writing' && raw.split('"truth"').length > 2) leaks.push(`${name}: frases alheias na escrita`);
     if (/token/.test(raw)) leaks.push(`${name}: token no estado`);
   });
   return socket;
@@ -110,8 +114,47 @@ const resumed = await emit<Session>(bruno2, 'room:resume', { code, token: bruno.
 assert(resumed.ok && resumed.playerId === bruno.session!.playerId, 'retomar sessão');
 await until(() => bruno2.view?.phase === 'final' && bruno2.view.players.find((p) => p.nickname === 'Bruno')!.score === 2, 'estado após reconexão');
 
+// Segunda partida na mesma sala: modo 2 mentiras, 1 verdade.
+const players = [ana, bruno2, carla];
+assert((await emit(ana, 'host:playAgain', {})).ok, 'jogar de novo');
+await until(() => players.every((c) => c.view?.phase === 'lobby'), 'volta ao lobby');
+assert((await emit(ana, 'host:setSettings', { mode: 'twoLiesOneTruth' })).ok, 'escolher o modo');
+assert((await emit(ana, 'host:setQuestions', { questions: ['Qual seu talento?', 'Qual viagem?', 'Qual mico?'] })).ok, 'perguntas');
+assert((await emit(ana, 'host:start', {})).ok, 'iniciar o modo');
+
+for (let round = 0; round < 3; round++) {
+  await until(() => players.every((c) => c.view?.phase === 'writing' && c.view.roundIndex === round), 'escrita do modo');
+  const asked = new Set(players.map((c) => c.view!.writing!.question));
+  assert(asked.size === 3, `perguntas diferentes na rodada ${round}`);
+  for (const c of players) {
+    const res = await emit(c, 'answer:submitTriple', { truth: `V ${c.name} ${round}`, lies: [`M1 ${c.name} ${round}`, `M2 ${c.name} ${round}`] });
+    assert(res.ok, `${c.name} enviar 3 frases`);
+  }
+
+  // Todos acham a verdade: o autor conta qual é (só ele recebe a posição).
+  for (let card = 0; card < 3; card++) {
+    await until(() => players.every((c) => c.view?.phase === 'voting' && c.view.voting!.cardNumber === card + 1), `card ${card + 1} do modo`);
+    const author = players.find((c) => c.view!.voting!.authorId === c.view!.me.id)!;
+    const index = author.view!.voting!.myTruthIndex!;
+    assert(!(await emit(author, 'vote:pick', { index })).ok, 'autor não vota no modo');
+    for (const c of players) if (c !== author) assert((await emit(c, 'vote:pick', { index })).ok, `${c.name} escolher`);
+    await until(() => players.every((c) => c.view?.phase === 'reveal'), 'revelação do modo');
+    assert(ana.view!.reveal!.result.triple!.picks[index] === 2, 'votos por frase');
+    assert((await emit(ana, 'host:advance', {})).ok, 'próximo card do modo');
+  }
+  await until(() => players.every((c) => c.view?.phase === 'roundScore'), 'placar do modo');
+  assert(ana.view!.roundScore!.question === null, 'placar sem pergunta');
+  assert((await emit(ana, 'host:advance', {})).ok, 'próxima rodada do modo');
+}
+
+await until(() => players.every((c) => c.view?.phase === 'final'), 'final do modo');
+// 3 rodadas com 2 votos certos por jogador em cada uma.
+assert(ana.view!.players.every((p) => p.score === 6), 'placar do modo');
+const titleKeys = ana.view!.final!.titles.map((t) => t.key);
+assert(titleKeys.length === 1 && titleKeys[0] === 'detector', `títulos do modo (${titleKeys})`);
+
 assert(leaks.length === 0, `vazamentos: ${leaks.join('; ')}`);
-console.log('OK: partida completa, pontuação, reconexão e nenhum vazamento.');
+console.log('OK: duas partidas (clássico e 2 mentiras, 1 verdade), pontuação, reconexão e nenhum vazamento.');
 
 for (const c of [...all, bruno2]) c.disconnect();
 stopSweep();

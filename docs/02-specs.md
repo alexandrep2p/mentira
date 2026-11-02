@@ -58,6 +58,7 @@ interface Settings {
   votingSeconds: number | null;    // padrão: 20
   autoAdvanceReveal: boolean;      // padrão: false (quando ligado, avança após 8 s)
   anonymous: boolean;              // padrão: false (esconde o autor na votação e na revelação)
+  allowSkip: boolean;              // padrão: false (no Clássico, permite pular a pergunta da rodada)
 }
 
 interface Player {
@@ -80,6 +81,7 @@ interface Round {
   index: number;
   question: string;
   answers: Map<string /*playerId*/, Answer>;
+  skipped: Set<string /*playerId*/>; // quem pulou a pergunta: sem card, mas não trava a escrita
   cardOrder: string[];             // playerIds embaralhados, definidos ao sair da escrita
   cardIndex: number;
   votes: Map<string /*voterId*/, boolean /*votou verdade*/>;
@@ -111,7 +113,7 @@ A classe `Room` concentra **todas as regras** e não conhece Socket.IO. Cada mé
 | De | Para | Gatilho |
 |---|---|---|
 | lobby | writing | host `start` (≥ 2 jogadores conectados, ≥ 1 pergunta) |
-| writing | voting | todos os ativos conectados enviaram, **ou** o timer acabou, **ou** o host avançou. Se ninguém respondeu → roundScore |
+| writing | voting | todos os ativos conectados enviaram ou pularam, **ou** o timer acabou, **ou** o host avançou. Se ninguém respondeu → roundScore |
 | voting | reveal | todos os votantes elegíveis conectados votaram, **ou** o timer acabou, **ou** o host avançou |
 | reveal | voting | host `advance` (ou avanço automático) e ainda há cards |
 | reveal | roundScore | host `advance` e era o último card |
@@ -180,6 +182,7 @@ type Ack<T = {}> = ({ ok: true } & T) | { ok: false; error: ErrorCode };
 | `host:end` | — | `Ack` | host |
 | `host:playAgain` | — | `Ack` | host, no final |
 | `answer:submit` | `{ text, isTruth }` | `Ack` | jogador ativo, em writing. Pode reenviar para editar até a fase fechar |
+| `answer:skip` | — | `Ack` | jogador ativo, em writing, no Clássico com `allowSkip`; senão, `WRONG_PHASE`. Apaga a resposta enviada; um novo `answer:submit` desfaz o pulo |
 | `vote:cast` | `{ votedTruth }` | `Ack` | votante elegível, em voting. Pode trocar o voto até a revelação |
 
 `Session = { code, playerId, token }`.
@@ -210,6 +213,7 @@ interface RoomView {
   writing?: {
     question: string;
     submittedIds: string[];
+    skippedIds: string[];             // quem pulou a pergunta
     myAnswer: Answer | null;          // só a própria resposta
   };
   voting?: {
@@ -230,7 +234,7 @@ interface RoomView {
 
 ### 6.5 Códigos de erro
 
-`ROOM_NOT_FOUND`, `NICKNAME_TAKEN`, `INVALID_NICKNAME`, `INVALID_AVATAR`, `INVALID_TOKEN`, `NOT_HOST`, `WRONG_PHASE`, `NOT_ENOUGH_PLAYERS`, `NO_QUESTIONS`, `INVALID_QUESTIONS`, `INVALID_ANSWER`, `NOT_ELIGIBLE`, `INVALID_SETTINGS`. O cliente traduz cada código para uma mensagem em pt-BR (snackbar).
+`ROOM_NOT_FOUND`, `NICKNAME_TAKEN`, `INVALID_NICKNAME`, `INVALID_AVATAR`, `INVALID_TOKEN`, `NOT_HOST`, `WRONG_PHASE`, `NOT_ENOUGH_PLAYERS`, `NO_QUESTIONS`, `INVALID_QUESTIONS`, `INVALID_ANSWER`, `INVALID_TRIPLE`, `NOT_ELIGIBLE`, `INVALID_SETTINGS`. O cliente traduz cada código para uma mensagem em pt-BR (snackbar).
 
 ## 7. Validações e limites (`constants.ts`)
 
@@ -340,3 +344,108 @@ Para testar **no celular em rede local**, `ng serve --host 0.0.0.0` e acesso por
 5. Se o host fecha a aba, outro jogador vira host depois de 30 s.
 6. As telas funcionam a partir de 360px de largura e no desktop.
 7. Os testes unitários de `Room`, `scoring` e `view` passam.
+
+## 14. Modo 2 mentiras, 1 verdade
+
+> Status: implementado · 2026-11-01 · Regras em [01-design.md](01-design.md), seção 10
+
+Esta seção descreve o que o modo acrescenta. As seções 1 a 13 descrevem o Clássico e a base comum.
+
+### 14.1 Domínio
+
+```ts
+type GameMode = 'classic' | 'twoLiesOneTruth';
+
+interface Settings {
+  // campos atuais
+  mode: GameMode;                  // padrão: 'classic'; só o host altera, no lobby
+}
+
+interface TripleAnswer { truth: string; lies: [string, string]; }
+
+interface Round {
+  // campos atuais
+  assigned: Map<string /*playerId*/, string /*pergunta*/>;
+  triples: Map<string /*playerId*/, { statements: string[]; truthIndex: number }>;
+  picks: Map<string /*voterId*/, number /*índice da frase*/>;
+}
+```
+
+`answers` e `votes` continuam sendo do Clássico. `cardOrder`, `cardIndex`, `cardResults` e `deltas` valem para os dois modos.
+
+### 14.2 Distribuição das perguntas
+
+Em `start`, o servidor embaralha as perguntas e dá um deslocamento a cada jogador, também em ordem sorteada:
+
+```
+pergunta do jogador na rodada r = lista[(deslocamento + r) % N]
+```
+
+- Ninguém repete pergunta, e depois de N rodadas cada jogador respondeu todas.
+- Com até N jogadores, as perguntas de uma rodada são todas diferentes. Acima disso, os deslocamentos se repetem.
+- Quem entra no meio recebe, ao começar a jogar, o deslocamento menos usado.
+- `round.assigned` guarda o resultado, então recarregar a página mantém a mesma pergunta.
+- `playAgain` descarta o rodízio.
+
+### 14.3 Máquina de estados
+
+As fases e transições da seção 4 não mudam. Só muda o que conta como "agiu": em writing, ter um registro em `triples`; em voting, ter um registro em `picks`.
+
+As 3 frases são embaralhadas no servidor, e `truthIndex` guarda a posição da verdade depois disso.
+
+### 14.4 Pontuação
+
+`scoreTriple` segue a regra da seção 5, com `correct = pick === truthIndex`. Ele devolve `isTruth: false`, para que `applyCardResult` conte os erros em `fooledWithLies`. `truthsWritten` e `truthsDisbelieved` ficam em zero, então `computeTitles` não precisa mudar: esses títulos não são gerados.
+
+### 14.5 Protocolo
+
+| Evento | Payload | Resposta | Quem pode |
+|---|---|---|---|
+| `answer:submitTriple` | `TripleAnswer` | `Ack` | jogador ativo, em writing. Pode reenviar para editar até a fase fechar |
+| `vote:pick` | `{ index: number }` | `Ack` | votante elegível, em voting. Pode trocar o voto até a revelação |
+
+`host:setSettings` passa a aceitar `mode`. Usar um evento do modo errado devolve `WRONG_PHASE`.
+
+Mudanças no `RoomView`:
+
+```ts
+writing: {
+  question: string;                 // a pergunta deste jogador; vazia para quem só assiste
+  myTriple: TripleAnswer | null;    // só a própria resposta
+};
+voting: {
+  statements: string[] | null;      // ordem embaralhada, SEM indicar a verdade; null no Clássico
+  myPick: number | null;
+  myTruthIndex: number | null;      // só para o autor do card
+};
+roundScore: {
+  question: string | null;          // null neste modo
+};
+
+interface CardVote { pickedIndex?: number; }
+interface CardResult {
+  triple?: { statements: string[]; truthIndex: number; picks: number[] };  // picks = votos por frase
+}
+```
+
+**Regra de segurança**: nem `truthIndex` nem a ordem em que o autor escreveu saem do servidor antes da revelação, exceto `myTruthIndex` para o próprio autor. No modo anônimo, `result.votes` continua filtrado e `picks` traz só contagens.
+
+### 14.6 Limites
+
+| Item | Regra |
+|---|---|
+| Cada frase | 1–200 caracteres depois do trim, sem repetir entre as 3 (sem diferenciar maiúsculas); senão, `INVALID_TRIPLE` |
+| Índice do voto | inteiro de 0 a 2; senão, `NOT_ELIGIBLE` |
+| Rodadas | igual ao número de perguntas |
+
+Quantidade de cards: rodadas × jogadores. Com 10 perguntas e 8 jogadores são 80 cards, então a estimativa do lobby precisa mostrar isso.
+
+### 14.7 Critérios de aceite
+
+1. Com o Clássico selecionado, o jogo se comporta como hoje.
+2. Com 3 ou mais jogadores e ao menos o mesmo número de perguntas, cada um recebe uma pergunta diferente em cada rodada.
+3. Ao fim da partida, cada jogador que começou no início respondeu todas as perguntas, sem repetir.
+4. Pela aba Network do DevTools, nenhum votante recebe `truthIndex` antes da revelação.
+5. Recarregar a página na escrita mantém a pergunta e a resposta enviada.
+6. Uma partida completa funciona com bots (`?bots=N`).
+7. Os testes unitários e `npm run simulate` cobrem o novo modo.

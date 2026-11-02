@@ -28,6 +28,24 @@ export class RevealPhase {
     this.result().votes.filter((v) => !v.correct).map((v) => this.store.player(v.voterId)).filter((p) => p !== null),
   );
 
+  /** As 3 frases do 2 mentiras, 1 verdade, com quem votou em cada uma. */
+  protected readonly statements = computed(() => {
+    const triple = this.result().triple;
+    if (!triple) return null;
+    return triple.statements.map((text, i) => {
+      const count = triple.picks[i];
+      return {
+        text,
+        isTruth: i === triple.truthIndex,
+        count: `${count} ${count === 1 ? 'voto' : 'votos'}`,
+        voters: this.result().votes
+          .filter((v) => v.pickedIndex === i)
+          .map((v) => this.store.player(v.voterId))
+          .filter((p) => p !== null),
+      };
+    });
+  });
+
   protected people(n: number) {
     return n === 0 ? 'Ninguém' : `${n} ${n === 1 ? 'pessoa' : 'pessoas'}`;
   }
@@ -45,6 +63,11 @@ export class RevealPhase {
     }
     const vote = r.votes.find((v) => v.voterId === me);
     if (!vote) return { tone: 'meh', icon: 'schedule', text: 'Você não votou neste card.', delta };
+    if (r.triple) {
+      return vote.correct
+        ? { tone: 'good', icon: 'check_circle', text: 'Você achou a verdade!', delta }
+        : { tone: 'bad', icon: 'sentiment_dissatisfied', text: 'Você caiu numa mentira.', delta };
+    }
     if (vote.correct) {
       return { tone: 'good', icon: 'check_circle', text: r.isTruth ? 'Você acreditou e acertou!' : 'Você não caiu nessa!', delta };
     }

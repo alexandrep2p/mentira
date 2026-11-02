@@ -156,6 +156,54 @@
   }
 }
 
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mode {
+  box-sizing: border-box;
+  min-height: 92px;
+  padding: 10px 12px;
+  border: 2px solid var(--line-strong);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  &[aria-pressed='true'] {
+    border-color: var(--primary);
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+
+    .mode-hint {
+      color: inherit;
+    }
+  }
+}
+
+.mode-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.mode-hint {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
 .questions {
   ol {
     margin: 0;

@@ -66,9 +66,16 @@ function createBot(name: string) {
 
     if (v.phase === 'writing' && v.writing && v.me.isActive) {
       const key = `w${v.roundIndex}`;
-      if (done.has(key) || v.writing.myAnswer) return;
+      if (done.has(key) || v.writing.myAnswer || v.writing.myTriple) return;
       done.add(key);
       await sleep(rand(4000, 12000));
+      if (v.settings.mode === 'twoLiesOneTruth') {
+        const triple = answers.pickTriple(v.roundIndex, v.writing.question);
+        socket.emit('answer:submitTriple', triple, (res) => {
+          if (res.ok) log(`respondeu com a verdade "${triple.truth}"`);
+        });
+        return;
+      }
       const [text, isTruth] = answers.pick(v.roundIndex, v.writing.question);
       socket.emit('answer:submit', { text, isTruth }, (res) => {
         if (res.ok) log(`respondeu (${isTruth ? 'verdade' : 'MENTIRA'}): "${text}"`);
@@ -77,9 +84,16 @@ function createBot(name: string) {
 
     if (v.phase === 'voting' && v.voting) {
       const key = `v${v.roundIndex}-${v.voting.cardNumber}`;
-      if (done.has(key) || !v.voting.eligibleIds.includes(me) || v.voting.myVote !== null) return;
+      if (done.has(key) || !v.voting.eligibleIds.includes(me) || v.voting.myVote !== null || v.voting.myPick !== null) return;
       done.add(key);
       await sleep(rand(2500, 9000));
+      if (v.voting.statements) {
+        const index = Math.floor(Math.random() * v.voting.statements.length);
+        socket.emit('vote:pick', { index }, (res) => {
+          if (res.ok) log(`escolheu a frase ${index + 1} no card de ${nick(v.voting!.authorId)}`);
+        });
+        return;
+      }
       const votedTruth = Math.random() < 0.55;
       socket.emit('vote:cast', { votedTruth }, (res) => {
         if (res.ok) log(`votou ${votedTruth ? 'VERDADE' : 'MENTIRA'} no card de ${nick(v.voting!.authorId)}`);
@@ -93,7 +107,7 @@ function createBot(name: string) {
       const r = v.reveal.result;
       const fooled = r.votes.filter((x) => !x.correct).map((x) => nick(x.voterId));
       console.log(
-        `\n>>> REVELAÇÃO: ${nick(r.authorId)} — ${r.isTruth ? 'VERDADE' : 'MENTIRA'}: "${r.text}"` +
+        `\n>>> REVELAÇÃO: ${nick(r.authorId)} — ${r.triple || r.isTruth ? 'VERDADE' : 'MENTIRA'}: "${r.text}"` +
           (fooled.length ? ` | caíram: ${fooled.join(', ')}` : ' | ninguém caiu') + '\n',
       );
     }
